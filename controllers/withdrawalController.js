@@ -12,8 +12,8 @@ const upload = uploadMiddleware("uploads");
 // CREATE: Add a new withdrawal
 router.post('/',upload.single('image'), async (req, res) => {
     try {
-        const { userId, bank_name, account_holder_name, account_number,status} = req.body;
-        const image = req.file ? req.file.path : null;
+        let { userId, bank_name, account_holder_name, account_number,image,status} = req.body;
+         image = req.file ? req.file.path : null;
         // Check if the user exists
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: 'User not found' });

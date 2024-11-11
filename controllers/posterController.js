@@ -11,9 +11,9 @@ const upload = uploadMiddleware("uploads");
 // CREATE: Add a new poster
 router.post('/',upload.single('image'), async (req, res) => {
     try {
-        //const { image } = req.body;
+        let { image } = req.body;
 
-        const image = req.file ? req.file.path : null;
+         image = req.file ? req.file.path : null;
 
         const poster = new Poster({
             image
