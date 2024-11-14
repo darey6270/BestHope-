@@ -11,9 +11,13 @@ const upload = uploadMiddleware("uploads");
 // CREATE: Add a new poster
 router.post('/',upload.single('image'), async (req, res) => {
     try {
-        let { image } = req.body;
+        // Check if file upload was successful
+    const image = req.file ? req.file.path : null;
 
-         image = req.file ? req.file.path : null;
+    // Ensure there’s an image to save
+    if (!image) {
+      return res.status(400).json({ message: 'Image upload failed.' });
+    }
 
         const poster = new Poster({
             image
