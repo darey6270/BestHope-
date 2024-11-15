@@ -241,27 +241,12 @@ const resetPassword = asyncHandler(async (req, res) => {
 
 // Controller function to approve a pending user
 const approveUser = async (req, res) => {
-  const { userId } = req.params;
-
   try {
-    // Find the user by ID and update the status to "approved"
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (user.status === "approved") {
-      return res.status(400).json({ message: "User is already approved" });
-    }
-
-    user.status = "approved";
-    await user.save();
-
-    res.status(200).json({ message: "User approved successfully", user });
+    const userId = req.params.id;
+    await User.findByIdAndUpdate(userId, { status: 'approved' });
+    res.status(200).json({ message: 'User approved successfully' });
   } catch (error) {
-    console.error("Error approving user:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ error: 'Failed to approve user' });
   }
 }
 

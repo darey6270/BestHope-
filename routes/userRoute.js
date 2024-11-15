@@ -29,6 +29,6 @@ router.patch("/updateuser", updateUser);
 router.patch("/changepassword", protect, changePassword);
 router.post("/forgotpassword", forgotPassword);
 router.put("/resetpassword/:resetToken", resetPassword);
-router.patch("/approve-user/:userId", approveUser);
+router.put("/approveuser/:id", approveUser);
 
 module.exports = router;
