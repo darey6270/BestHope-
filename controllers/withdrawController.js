@@ -1,4 +1,6 @@
 const Withdrawal = require('../models/withdrawalModel');
+const User = require("../models/userModel");
+const Referral = require("../models/referralModel");
 /**
  * Updates the status of a withdrawal by its ID.
  * @param {string} withdrawalId - The ID of the withdrawal document to update.
@@ -27,4 +29,7 @@ async function updateWithdrawalStatus(withdrawalId, newStatus) {
   return updatedWithdrawal;
 }
 
-module.exports = updateWithdrawalStatus;
+
+
+
+module.exports = {updateWithdrawalStatus};

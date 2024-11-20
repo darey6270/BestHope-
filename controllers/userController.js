@@ -8,6 +8,24 @@ const sendEmail = require("../utils/sendEmail");
 const dotenv = require("dotenv").config();
 const cloudinary = require('../utils/cloudinary'); // Import Cloudinary configuration
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const {updateWithdrawalStatus} = require("../controllers/withdrawController");
+
+const generateReferralCode = async () => {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let referralCode;
+  let isUnique = false;
+
+  while (!isUnique) {
+    referralCode = Array.from({ length: 11 }, () => characters[Math.floor(Math.random() * characters.length)]).join('');
+    const existingUser = await User.findOne({ referral: referralCode });
+    if (!existingUser) {
+      isUnique = true; // Ensure uniqueness
+    }
+  }
+
+  return referralCode;
+};
+
 
 
 // Register User
@@ -35,9 +53,7 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error("Email has already been registered");
   }
 
-  // Create new user
-  const user = await User.create({username,fullname,country,city,age,phone,referral,
-     email, password,address,image,gender});
+  
   
   // Step 2: If a referralCode is provided, increment the referralledCount
   if (referral) {
@@ -55,12 +71,19 @@ const registerUser = asyncHandler(async (req, res) => {
       console.log('Referral code is invalid.');
     }
   }   
+    
+ // Generate unique referral code
+ const uniqueReferralCode = await generateReferralCode(); 
+  // Create new user
+  const user = await User.create({username,fullname,country,city,age,phone,uniqueReferralCode,
+    email, password,address,image,gender});
 
   if (user) {
-    const { _id, username,email, password, image } = user;
+    const { _id, username,fullname,country,city,age,phone,uniqueReferralCode,
+      email, password,address,image,gender } = user;
     res.status(201).json({
-      _id,username,
-      email, password,image
+      _id,username,fullname,country,city,age,phone,uniqueReferralCode,
+      email, password,address,image,gender
     });
   } else {
     res.status(400);
@@ -77,7 +100,12 @@ const loginUser = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Please add email and password");
   }
-
+   
+  // try {
+  //   await autoApproveWithdrawals(req, res);
+  // } catch (error) {
+  //   console.error('Error auto approving withdrawal status:', error.message);
+  // }
   // Check if user exists
   const user = await User.findOne({ username });
 
@@ -91,11 +119,11 @@ const loginUser = asyncHandler(async (req, res) => {
 
 
   if (user && passwordIsCorrect) {
-    const { _id, username,fullname,country,city,age,phone,referral, email, password,address,image,gender } = user;
+    const { _id, username,fullname,country,city,age,phone,referral, email, password,address,image,gender ,status} = user;
     res.status(200).json({
       _id,
       username,fullname,country,city,age,phone,referral,
-      email, password,address,image,gender
+      email, password,address,image,gender,status
     });
   } else {
     res.status(400);
@@ -115,10 +143,10 @@ const getUser = asyncHandler(async (req, res) => {
   const user = await User.findById(id);
 
   if (user) {
-    const { _id, username,fullname,country,city,age,phone,referral, email, password,address,image,gender } = user;
+    const { _id, username,fullname,country,city,age,phone,referral, email, password,address,image,gender ,status} = user;
     res.status(200).json({
       _id,
-      username,fullname,country,city,age,phone,referral, email, password,address,image,gender});
+      username,fullname,country,city,age,phone,referral, email, password,address,image,gender,status});
   } else {
     res.status(400);
     throw new Error("User Not Found");
@@ -226,12 +254,12 @@ const forgotPassword = asyncHandler(async (req, res) => {
 // Reset Password
 const resetPassword = asyncHandler(async (req, res) => {
   const { password } = req.body;
-  const { resetToken } = req.params;
+  const {userId } = req.params;
 
   
 
   // Find user
-  const user = await User.findOne({ _id: userToken.userId });
+  const user = await User.findOne({ _id: userId });
   user.password = password;
   await user.save();
   res.status(200).json({

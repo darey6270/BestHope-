@@ -7,7 +7,6 @@ const userRoute = require("./routes/userRoute");
 const errorHandler = require("./middleWare/errorMiddleware");
 const cookieParser = require("cookie-parser");
 const path = require("path");
-// Referral routes
 const referralRoutes = require('./routes/referralRoute');
 const randomRoutes = require('./routes/randomRoute');
 const app = express();
@@ -17,13 +16,6 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-// app.use(
-//   cors({
-//     origin: ["http://localhost:3000", "https://pinvent-app.vercel.app"],
-//     credentials: true,
-//   })
-// );
-
 app.use(cors());
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -35,7 +27,7 @@ app.use('/api/accounts', require('./controllers/accountController'));
 app.use('/api/deposits', require('./controllers/depositControlller'));
 app.use('/api/posters', require('./controllers/posterController'));
 app.use('/api/referrals', referralRoutes);
-app.use('/api/random', randomRoutes);
+app.use('/api/randoms', randomRoutes);
 
 
 // Routes

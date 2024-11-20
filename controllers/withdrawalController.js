@@ -8,6 +8,84 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const {fileSizeFormatter } = require("../utils/fileUpload");
 const uploadMiddleware = require("../utils/uploadMiddleware");
 const upload = uploadMiddleware("uploads");
+const Referral = require("../models/referralModel");
+
+// Function to approve withdrawals for users with a total of 10,000 in referralModel
+ 
+router.get('/autoApprove',async (req, res) => {
+    try {
+      // Step 1: Find all users in Referral model with total >= 10,000
+      const eligibleReferrals = await Referral.find({ total: { $gte: 10000 } });
+      // Step 2: Loop through each eligible referral and update their withdrawal status to "approved"
+  
+      if (eligibleReferrals.length === 0 ) {
+        return res.status(404).json({ message: "No users found with sufficient total for approval" });
+      }
+  
+      // Step 2: Loop through eligible referrals and approve their pending withdrawals
+      const approvedWithdrawals = [];
+  
+      for (const referral of eligibleReferrals) {
+        const { userId } = referral;
+  
+        // Find the user's pending withdrawal request
+        const pendingWithdrawal = await Withdrawal.findOne({
+          userId,
+          status: "pending",
+        });
+  
+        // Check if a pending withdrawal exists
+        if (!pendingWithdrawal) {
+          console.warn(`No pending withdrawal found for userId: ${userId}`);
+          continue; // Skip to the next referral if no pending withdrawal
+        }
+  
+        // Approve the pending withdrawal
+        pendingWithdrawal.status = "approved";
+        await pendingWithdrawal.save();
+  
+        approvedWithdrawals.push(pendingWithdrawal);
+      }
+  
+      if (approvedWithdrawals.length === 0) {
+        return res.status(404).json({ message: "No pending withdrawals found for approval" });
+      }
+  
+      res.status(200).json({
+        message: "Withdrawals approved successfully",
+        approvedWithdrawals,
+      });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  } );
+// PATCH: Update the status of a withdrawal by ID
+router.patch('/:id/status', async (req, res) => {
+    try {
+        const { status } = req.body;
+
+        // Validate the new status
+        const validStatuses = ["pending", "approved", "rejected"];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: `Invalid status. Must be one of: ${validStatuses.join(", ")}` });
+        }
+
+        // Find and update the withdrawal
+        const withdrawal = await Withdrawal.findById(req.params.id);
+        if (!withdrawal) return res.status(404).json({ message: 'Withdrawal not found' });
+
+        withdrawal.status = status;
+        const updatedWithdrawal = await withdrawal.save();
+
+        res.status(200).json({
+            message: `Withdrawal status updated to ${status}`,
+            withdrawal: updatedWithdrawal,
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
 
 // CREATE: Add a new withdrawal
 router.post('/',upload.single('image'), async (req, res) => {
@@ -60,7 +138,7 @@ router.get('/:id', async (req, res) => {
 // UPDATE: Update a withdrawal by ID
 router.put('/:id', async (req, res) => {
     try {
-        const { bank_name, account_holder_name, account_number, image } = req.body;
+        const { bank_name, account_holder_name, account_number, image,status } = req.body;
 
         const withdrawal = await Withdrawal.findById(req.params.id);
         if (!withdrawal) return res.status(404).json({ message: 'Withdrawal not found' });

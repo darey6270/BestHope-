@@ -9,6 +9,35 @@ const {fileSizeFormatter } = require("../utils/fileUpload");
 const uploadMiddleware = require("../utils/uploadMiddleware");
 const upload = uploadMiddleware("uploads");
 
+
+// PATCH: Update the status of a deposit by ID
+router.patch('/:id/status', async (req, res) => {
+    try {
+        const { status } = req.body;
+
+        // Validate the new status
+        const validStatuses = ["pending", "approved", "rejected"];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: `Invalid status. Must be one of: ${validStatuses.join(", ")}` });
+        }
+
+        // Find the deposit and update the status
+        const deposit = await Deposit.findById(req.params.id);
+        if (!deposit) return res.status(404).json({ message: 'Deposit not found' });
+
+        deposit.status = status;
+        const updatedDeposit = await deposit.save();
+
+        res.status(200).json({
+            message: `Deposit status updated to ${status}`,
+            deposit: updatedDeposit,
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+
 // CREATE: Add a new deposit
 router.post('/',upload.single('image'), async (req, res) => {
     try {

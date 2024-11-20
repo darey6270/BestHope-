@@ -1,5 +1,5 @@
 const RandomModel = require('../models/randomModel');
-const updateWithdrawalStatus = require('./withdrawController');
+const {autoApproveWithdrawals, updateWithdrawalStatus} = require("../controllers/withdrawController");
 
 // Create a new record
 exports.createRandomRecord = async (req, res) => {

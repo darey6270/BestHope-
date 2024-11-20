@@ -17,4 +17,7 @@ router.put('/:id', referralController.updateReferral);
 // DELETE a referral by ID
 router.delete('/:id', referralController.deleteReferral);
 
+// New route to get referrals for a specific user
+router.get('/user/:userId',referralController.getUserReferrals);
+
 module.exports = router;
