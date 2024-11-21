@@ -17,7 +17,7 @@ exports.createReferral = async (req, res) => {
 // READ all referrals
 exports.getAllReferrals = async (req, res) => {
   try {
-    const referrals = await Referral.find().populate('userId', 'usermame image');
+    const referrals = await Referral.find().populate('userId', 'username referral image');
     res.status(200).json(referrals);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -30,7 +30,7 @@ exports.getReferralById = async (req, res) => {
     const referral = await Referral.findById(req.params.id);
     
     if (!referral) {
-      return res.status(404).json({ message: 'Referral not found' });
+      return res.status(404).json({ message: 'Referral not found' }).populate('userId', 'username referral image');;
     }
 
     res.status(200).json(referral);
@@ -79,7 +79,7 @@ exports.getUserReferrals = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const userReferrals = await Referral.find({ userId }).populate('userId', 'usermame image');;
+    const userReferrals = await Referral.find({ userId }).populate('userId', 'username image');;
 
     if (!userReferrals.length) {
       return res.status(404).json({ message: 'No referrals found for this user' });

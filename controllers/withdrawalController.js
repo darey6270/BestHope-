@@ -19,7 +19,8 @@ router.get('/autoApprove',async (req, res) => {
       // Step 2: Loop through each eligible referral and update their withdrawal status to "approved"
   
       if (eligibleReferrals.length === 0 ) {
-        return res.status(404).json({ message: "No users found with sufficient total for approval" });
+        console.log("No users found with sufficient total for approval" );
+        return;
       }
   
       // Step 2: Loop through eligible referrals and approve their pending withdrawals
@@ -48,15 +49,13 @@ router.get('/autoApprove',async (req, res) => {
       }
   
       if (approvedWithdrawals.length === 0) {
-        return res.status(404).json({ message: "No pending withdrawals found for approval" });
+        console.log("No pending withdrawals found for approval" );
       }
   
-      res.status(200).json({
-        message: "Withdrawals approved successfully",
-        approvedWithdrawals,
-      });
+      console.log(`Withdrawals approved successfully ${approvedWithdrawals}`);
+      return;
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      console.log("message: error.message ");
     }
   } );
 // PATCH: Update the status of a withdrawal by ID

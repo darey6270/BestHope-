@@ -17,6 +17,6 @@ router.patch('/bulk-exclude', randomController.bulkUpdateExclusion);
 // Route to delete a record by userId
 router.delete('/:userId', randomController.deleteRecord);
 
-router.get('/unselected', randomController.getUnselectedUsers);
+router.get('/unselected', randomController.getselectedUsers);
 
 module.exports = router;

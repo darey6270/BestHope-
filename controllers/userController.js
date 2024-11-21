@@ -8,7 +8,7 @@ const sendEmail = require("../utils/sendEmail");
 const dotenv = require("dotenv").config();
 const cloudinary = require('../utils/cloudinary'); // Import Cloudinary configuration
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const {updateWithdrawalStatus} = require("../controllers/withdrawController");
+const {updateWithdrawalStatus,autoAppoveWithdrawal} = require("../controllers/withdrawController");
 
 const generateReferralCode = async () => {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -27,69 +27,110 @@ const generateReferralCode = async () => {
 };
 
 
-
-// Register User
 const registerUser = asyncHandler(async (req, res) => {
-
-  const { username,fullname,country,city,age,phone,referral, email, password,address,gender } = req.body;
+  const { username, fullname, country, city, age, phone, referral, email, password, address, gender, status } = req.body;
   const image = req.file ? req.file.path : null;
-  
 
   // Validation
-  if (!username || !fullname || !country ||!city || !age || !phone ||!referral ||!password ||!address ||!gender) {
+  if (!username || !fullname || !country || !city || !age || !phone || !password || !address || !gender) {
     res.status(400);
     throw new Error("Please fill in all required fields");
   }
   if (password.length < 6) {
     res.status(400);
-    throw new Error("Password must be up to 6 characters");
+    throw new Error("Password must be at least 6 characters");
   }
 
   // Check if user email already exists
   const userExists = await User.findOne({ email });
-
   if (userExists) {
     res.status(400);
     throw new Error("Email has already been registered");
   }
 
-  
-  
-  // Step 2: If a referralCode is provided, increment the referralledCount
+  // Handle referrals
   if (referral) {
-    // Find the user who owns this referral code
+    // Find the referring user by their referral code
     const referringUser = await User.findOne({ referral });
-    
+
     if (referringUser) {
-      // Find and update the referring user's Referral document
-      await Referral.findOneAndUpdate(
-        { userId: referringUser._id },
-        { $inc: { referralledCount: 1 } },
-        { new: true }
-      );
+      console.log(`User with referral code exists. Referring User ID: ${referringUser._id}`);
+
+      // Check if a Referral document exists for the referring user
+      const existingReferral = await Referral.findOne({ userId: referringUser._id });
+
+      if (existingReferral) {
+        // Increment the `referralledCount` and recalculate `total`
+        const updatedReferralledCount = existingReferral.referralledCount + 1;
+        const newTotal = updatedReferralledCount * existingReferral.amount;
+
+        await Referral.findByIdAndUpdate(
+          existingReferral._id,
+          { referralledCount: updatedReferralledCount, total: newTotal },
+          { new: true }
+        );
+      } else {
+        // Create a new Referral document if it doesn’t exist
+        const initialCount = 1; // First referral
+        const amountPerReferral = 500; // Default amount
+        const initialTotal = initialCount * amountPerReferral;
+
+        await Referral.create({
+          userId: referringUser._id,
+          referralledCount: initialCount,
+          amount: amountPerReferral,
+          total: initialTotal,
+        });
+      }
     } else {
-      console.log('Referral code is invalid.');
+      console.log("Invalid referral code.");
     }
-  }   
-    
- // Generate unique referral code
- const uniqueReferralCode = await generateReferralCode(); 
+  }
+
+  // Generate unique referral code for the new user
+  const uniqueReferralCode = await generateReferralCode();
+  console.log(`Generated unique referral code: ${uniqueReferralCode}`);
+
   // Create new user
-  const user = await User.create({username,fullname,country,city,age,phone,uniqueReferralCode,
-    email, password,address,image,gender});
+  const user = await User.create({
+    username,
+    fullname,
+    country,
+    city,
+    age,
+    phone,
+    referral: uniqueReferralCode,
+    email,
+    password,
+    address,
+    image,
+    gender,
+    status,
+  });
 
   if (user) {
-    const { _id, username,fullname,country,city,age,phone,uniqueReferralCode,
-      email, password,address,image,gender } = user;
+    const { _id, username, fullname, country, city, age, phone, referral, email, address, image, gender } = user;
     res.status(201).json({
-      _id,username,fullname,country,city,age,phone,uniqueReferralCode,
-      email, password,address,image,gender
+      _id,
+      username,
+      fullname,
+      country,
+      city,
+      age,
+      phone,
+      referral,
+      email,
+      address,
+      image,
+      gender,
     });
   } else {
     res.status(400);
     throw new Error("Invalid user data");
   }
 });
+
+
 
 // Login User
 const loginUser = asyncHandler(async (req, res) => {
@@ -116,6 +157,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   // User exists, check if password is correct
   const passwordIsCorrect = await bcrypt.compare(password, user.password);
+  await autoAppoveWithdrawal();
 
 
   if (user && passwordIsCorrect) {
@@ -129,6 +171,9 @@ const loginUser = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Invalid email or password");
   }
+   
+
+
 });
 
 // Logout User

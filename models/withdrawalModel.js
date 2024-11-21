@@ -9,17 +9,14 @@ const withdrawalSchema = mongoose.Schema(
     },
     bank_name: {
       type: String,
-      required: [true, "Please add a bank name"],
       trim: true,
     },
     account_holder_name: {
       type: String,
-      required: [true, "Please add an account holder name"],
       trim: true,
     },
     account_number: {
       type: String,
-      required: [true, "Please add an account number"],
       trim: true,
     },
     image: {
@@ -28,7 +25,6 @@ const withdrawalSchema = mongoose.Schema(
     },
     status: {
       type: String,
-      required: true,
       enum: ["pending", "approved", "rejected"],
       default: "pending",
       trim: true,
@@ -38,6 +34,8 @@ const withdrawalSchema = mongoose.Schema(
     timestamps: true,
   }
 );
+
+
 
 const Withdrawal = mongoose.model("Withdrawal", withdrawalSchema);
 module.exports = Withdrawal;

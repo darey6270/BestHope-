@@ -13,4 +13,32 @@
 username:darey6270
 password:QgJb0K7KGpqzEPEb
 
+tableHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#e0e0e0',
+    paddingVertical: 10,
+    paddingHorizontal: 5,
+    borderRadius: 5,
+  },
+  tableHeaderText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    flex: 1,
+    textAlign: 'center',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  tableCell: {
+    fontSize: 14,
+    flex: 1,
+    textAlign: 'center',
+  },
+
 

@@ -1,5 +1,5 @@
 const RandomModel = require('../models/randomModel');
-const {autoApproveWithdrawals, updateWithdrawalStatus} = require("../controllers/withdrawController");
+const {updateWithdrawalStatus,autoAppoveWithdrawal} = require("../controllers/withdrawController");
 
 // Create a new record
 exports.createRandomRecord = async (req, res) => {
@@ -23,10 +23,10 @@ exports.getAllRecords = async (req, res) => {
   }
 };
 
-// Get all unselected users (excluded: false)
-exports.getUnselectedUsers = async (req, res) => {
+// Get all selected users (excluded: false)
+exports.getselectedUsers = async (req, res) => {
   try {
-    const unselectedUsers = await RandomModel.find({ excluded: false }).populate('userId');
+    const unselectedUsers = await RandomModel.find({ excluded: true }).populate('userId');
     
     if (unselectedUsers.length === 0) {
       return res.status(404).json({ message: 'No unselected users found.' });
@@ -67,18 +67,24 @@ exports.selectRandomUser = async (req, res) => {
 exports.bulkUpdateExclusion = async (req, res) => {
   const { userIds, exclude } = req.body;
 
+  console.log(req.body);
+
   try {
     // Update exclusion status for the specified users
-    await RandomModel.updateMany(
-      { userId: { $in: userIds } },
-      { $set: { excluded: exclude } }
-    );
+    // await RandomModel.updateMany(
+    //   { userId: { $in: userIds } },
+    //   { $set: { excluded: exclude } }
+    // );
+
+    
 
     // Optionally update withdrawal status if exclude is true
     if (exclude) {
       for (const userId of userIds) {
         try {
+          await RandomModel.create({ userId, notes:"you are among the selected user",excluded:true });
           await updateWithdrawalStatus(userId, 'approved');
+          console.log(`user with this id number ${userId} was approved`);
         } catch (error) {
           console.error('Error updating withdrawal status:', error.message);
         }
