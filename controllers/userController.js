@@ -9,6 +9,7 @@ const dotenv = require("dotenv").config();
 const cloudinary = require('../utils/cloudinary'); // Import Cloudinary configuration
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const {updateWithdrawalStatus,autoAppoveWithdrawal} = require("../controllers/withdrawController");
+const UserReferral = require("../models/userReferralModel");
 
 const generateReferralCode = async () => {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -30,6 +31,7 @@ const generateReferralCode = async () => {
 const registerUser = asyncHandler(async (req, res) => {
   const { username, fullname, country, city, age, phone, referral, email, password, address, gender, status } = req.body;
   const image = req.file ? req.file.path : null;
+  const user_referral=referral;
 
   // Validation
   if (!username || !fullname || !country || !city || !age || !phone || !password || !address || !gender) {
@@ -108,8 +110,18 @@ const registerUser = asyncHandler(async (req, res) => {
     status,
   });
 
+  
+
   if (user) {
     const { _id, username, fullname, country, city, age, phone, referral, email, address, image, gender } = user;
+    const userReferral = await UserReferral.create({
+      userId:_id,
+      username,
+      fullname,
+      referral:user_referral,
+      image,
+      status,
+    });
     res.status(201).json({
       _id,
       username,

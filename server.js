@@ -9,6 +9,8 @@ const cookieParser = require("cookie-parser");
 const path = require("path");
 const referralRoutes = require('./routes/referralRoute');
 const randomRoutes = require('./routes/randomRoute');
+const userReferralRoutes = require("./routes/userReferralRoute");
+const selectedUserRoutes = require('./routes/selectedUserRoute');
 const app = express();
 
 // Middlewares
@@ -28,6 +30,8 @@ app.use('/api/deposits', require('./controllers/depositControlller'));
 app.use('/api/posters', require('./controllers/posterController'));
 app.use('/api/referrals', referralRoutes);
 app.use('/api/randoms', randomRoutes);
+app.use("/api/user-referrals", userReferralRoutes);
+app.use('/api/selectedUsers', selectedUserRoutes);
 
 
 // Routes
