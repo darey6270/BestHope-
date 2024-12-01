@@ -9,8 +9,8 @@ const getAllUserReferrals = asyncHandler(async (req, res) => {
 
 // Get UserReferrals by referral
 const getUsersByReferral = asyncHandler(async (req, res) => {
-  const { referral } = req.params;
-  const userReferrals = await UserReferral.find({ referral });
+  const { usedReferral } = req.params;
+  const userReferrals = await UserReferral.find({ usedReferral });
 
   if (!userReferrals || userReferrals.length === 0) {
     res.status(404);
@@ -22,12 +22,13 @@ const getUsersByReferral = asyncHandler(async (req, res) => {
 
 // Create a new UserReferral
 const createUserReferral = asyncHandler(async (req, res) => {
-  const { userId, username, fullname, referral, image, status } = req.body;
+  const { userId, username, fullname, referral, image, status,usedReferral,payment,amount} = req.body;
 
   if (!userId || !username || !fullname || !referral) {
     res.status(400);
     throw new Error("Please provide all required fields");
   }
+ 
 
   const userReferral = await UserReferral.create({
     userId,
@@ -36,6 +37,9 @@ const createUserReferral = asyncHandler(async (req, res) => {
     referral,
     image,
     status,
+    usedReferral,
+    payment,
+    amount,
   });
 
   res.status(201).json(userReferral);
@@ -62,14 +66,14 @@ const updateUserReferral = asyncHandler(async (req, res) => {
 
 // Delete a UserReferral
 const deleteUserReferral = asyncHandler(async (req, res) => {
-    const { referral } = req.params; // Now we are using the referral parameter to delete
+    const { usedReferral } = req.params; // Now we are using the referral parameter to delete
   
-    if (!referral) {
+    if (!usedReferral) {
       res.status(400);
       throw new Error("Referral parameter is required");
     }
   
-    const result = await UserReferral.deleteMany({ referral });
+    const result = await UserReferral.deleteMany({ UserReferral });
   
     if (result.deletedCount === 0) {
       res.status(404);

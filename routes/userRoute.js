@@ -12,6 +12,7 @@ const {
   resetPassword,
   getUsers,
   approveUser,
+  getApprovedUsers,
 } = require("../controllers/userController");
 const protect = require("../middleWare/authMiddleware");
 const {fileSizeFormatter } = require("../utils/fileUpload");
@@ -30,5 +31,6 @@ router.patch("/changepassword", changePassword);
 router.post("/forgotpassword", forgotPassword);
 router.put("/resetpassword/:userId", resetPassword);
 router.put("/approveuser/:id", approveUser);
+router.get("/getApprovedUsers", getApprovedUsers);
 
 module.exports = router;

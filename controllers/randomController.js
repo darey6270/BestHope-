@@ -1,5 +1,8 @@
 const RandomModel = require('../models/randomModel');
+const Withdrawal=require('../models/withdrawalModel'); 
 const {updateWithdrawalStatus,autoAppoveWithdrawal} = require("../controllers/withdrawController");
+const SelectedUser=require('../models/selectedUserModel');
+const asyncHandler = require('express-async-handler');
 
 // Create a new record
 exports.createRandomRecord = async (req, res) => {
@@ -41,7 +44,7 @@ exports.getselectedUsers = async (req, res) => {
 // Select a random user who has not been previously selected
 exports.selectRandomUser = async (req, res) => {
   try {
-    const eligibleUsers = await RandomModel.find({ excluded: false });
+    const eligibleUsers = await RandomModel.find({ excluded: true });
 
     if (eligibleUsers.length === 0) {
       return res.status(404).json({ message: 'No eligible users found for selection.' });
@@ -65,26 +68,24 @@ exports.selectRandomUser = async (req, res) => {
 
 // Bulk update exclusion status for multiple users
 exports.bulkUpdateExclusion = async (req, res) => {
-  const { userIds, exclude } = req.body;
+  const { userIds, exclude ,amounts } = req.body;
 
-  console.log(req.body);
 
   try {
-    // Update exclusion status for the specified users
-    // await RandomModel.updateMany(
-    //   { userId: { $in: userIds } },
-    //   { $set: { excluded: exclude } }
-    // );
-
-    
 
     // Optionally update withdrawal status if exclude is true
     if (exclude) {
       for (const userId of userIds) {
         try {
-          await RandomModel.create({ userId, notes:"you are among the selected user",excluded:true });
-          await updateWithdrawalStatus(userId, 'approved');
-          console.log(`user with this id number ${userId} was approved`);
+          await RandomModel.create({ userId:userId._id, notes:"you are among the selected user",excluded:true });
+          // Create new user
+  const withdrawal = await Withdrawal.create({ userId:userId._id,bank_name:"",account_holder_name:"",account_number:"",image:"",normalStatus: "approved",referralStatus: "pending",amount:amounts,type:"normal"});
+
+    let {_id}=withdrawal;
+
+    const selectedUser = await SelectedUser.create({ username:userId.username, fullname:userId.fullname, referral:userId.referral, image:userId.image, status:"approved", amount:amounts, userId:userId._id,withdrawalId:withdrawal._id});
+
+          console.log(`user with this id number ${userId._id} was approved`);
         } catch (error) {
           console.error('Error updating withdrawal status:', error.message);
         }
@@ -115,3 +116,8 @@ exports.deleteRecord = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.resetRandomSelectedUser = asyncHandler(async (req, res) => {
+  await RandomModel.deleteMany({});
+  res.status(200).json({ message: "All randomly selected users have been reset" });
+});

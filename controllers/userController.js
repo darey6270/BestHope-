@@ -2,15 +2,13 @@ const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel");
 const Referral = require("../models/referralModel");
 const bcrypt = require("bcryptjs");
-const Token = require("../models/tokenModel");
 const crypto = require("crypto");
 const sendEmail = require("../utils/sendEmail");
 const dotenv = require("dotenv").config();
-const cloudinary = require('../utils/cloudinary'); // Import Cloudinary configuration
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const {updateWithdrawalStatus,autoAppoveWithdrawal} = require("../controllers/withdrawController");
+const cloudinary = require('../utils/cloudinary');
 const UserReferral = require("../models/userReferralModel");
 
+// Function to generate a unique referral code
 const generateReferralCode = async () => {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let referralCode;
@@ -27,17 +25,22 @@ const generateReferralCode = async () => {
   return referralCode;
 };
 
-
 const registerUser = asyncHandler(async (req, res) => {
-  const { username, fullname, country, city, age, phone, referral, email, password, address, gender, status } = req.body;
+  const {
+    username, fullname, country, city, age, phone,
+    referral, email, password, address, gender, status,
+    userStatus, referralStatus, balance, referralBalance
+  } = req.body;
+  
   const image = req.file ? req.file.path : null;
-  const user_referral=referral;
+  const usedReferral = referral;
 
   // Validation
   if (!username || !fullname || !country || !city || !age || !phone || !password || !address || !gender) {
     res.status(400);
     throw new Error("Please fill in all required fields");
   }
+
   if (password.length < 6) {
     res.status(400);
     throw new Error("Password must be at least 6 characters");
@@ -46,23 +49,16 @@ const registerUser = asyncHandler(async (req, res) => {
   // Check if user email already exists
   const userExists = await User.findOne({ email });
   if (userExists) {
-    res.status(400);
     throw new Error("Email has already been registered");
   }
 
   // Handle referrals
   if (referral) {
-    // Find the referring user by their referral code
     const referringUser = await User.findOne({ referral });
-
     if (referringUser) {
-      console.log(`User with referral code exists. Referring User ID: ${referringUser._id}`);
-
-      // Check if a Referral document exists for the referring user
       const existingReferral = await Referral.findOne({ userId: referringUser._id });
-
       if (existingReferral) {
-        // Increment the `referralledCount` and recalculate `total`
+        // Update referral stats
         const updatedReferralledCount = existingReferral.referralledCount + 1;
         const newTotal = updatedReferralledCount * existingReferral.amount;
 
@@ -71,10 +67,16 @@ const registerUser = asyncHandler(async (req, res) => {
           { referralledCount: updatedReferralledCount, total: newTotal },
           { new: true }
         );
+
+        await User.findByIdAndUpdate(
+          referringUser._id,
+          { referralBalance: newTotal },
+          { new: true }
+        );
       } else {
-        // Create a new Referral document if it doesn’t exist
-        const initialCount = 1; // First referral
-        const amountPerReferral = 500; // Default amount
+        // Create new Referral document
+        const initialCount = 1;
+        const amountPerReferral = 500;
         const initialTotal = initialCount * amountPerReferral;
 
         await Referral.create({
@@ -83,17 +85,24 @@ const registerUser = asyncHandler(async (req, res) => {
           amount: amountPerReferral,
           total: initialTotal,
         });
+
+        await User.findByIdAndUpdate(
+          referringUser._id,
+          { referralBalance: initialTotal },
+          { new: true }
+        );
       }
     } else {
-      console.log("Invalid referral code.");
+      res.status(400);
+      throw new Error("Invalid referral code");
     }
   }
 
   // Generate unique referral code for the new user
   const uniqueReferralCode = await generateReferralCode();
-  console.log(`Generated unique referral code: ${uniqueReferralCode}`);
 
   // Create new user
+  const hashedPassword = await bcrypt.hash(password, 10);
   const user = await User.create({
     username,
     fullname,
@@ -103,44 +112,50 @@ const registerUser = asyncHandler(async (req, res) => {
     phone,
     referral: uniqueReferralCode,
     email,
-    password,
+    password: hashedPassword,
     address,
     image,
     gender,
     status,
+    userStatus,
+    referralStatus,
+    balance,
+    referralBalance,
+    usedReferral,
   });
 
-  
-
   if (user) {
-    const { _id, username, fullname, country, city, age, phone, referral, email, address, image, gender } = user;
     const userReferral = await UserReferral.create({
-      userId:_id,
-      username,
-      fullname,
-      referral:user_referral,
-      image,
-      status,
+      userId: user._id,
+      username: user.username,
+      fullname: user.fullname,
+      referral: user.referral,
+      image: user.image,
+      status: "pending",
+      usedReferral: user.usedReferral,
+      payment: "unpaid",
     });
+
     res.status(201).json({
-      _id,
-      username,
-      fullname,
-      country,
-      city,
-      age,
-      phone,
-      referral,
-      email,
-      address,
-      image,
-      gender,
+      _id: user._id,
+      username: user.username,
+      fullname: user.fullname,
+      country: user.country,
+      city: user.city,
+      age: user.age,
+      phone: user.phone,
+      referral: user.referral,
+      email: user.email,
+      address: user.address,
+      image: user.image,
+      gender: user.gender,
     });
   } else {
-    res.status(400);
     throw new Error("Invalid user data");
   }
 });
+
+
 
 
 
@@ -169,11 +184,13 @@ const loginUser = asyncHandler(async (req, res) => {
 
   // User exists, check if password is correct
   const passwordIsCorrect = await bcrypt.compare(password, user.password);
-  await autoAppoveWithdrawal();
+  // await autoAppoveWithdrawal();
 
 
   if (user && passwordIsCorrect) {
     const { _id, username,fullname,country,city,age,phone,referral, email, password,address,image,gender ,status} = user;
+    
+    req.session.user = { id: user._id, email: user.email };
     res.status(200).json({
       _id,
       username,fullname,country,city,age,phone,referral,
@@ -190,7 +207,14 @@ const loginUser = asyncHandler(async (req, res) => {
 
 // Logout User
 const logout = asyncHandler(async (req, res) => {
-  return res.status(200).json({ message: "Successfully Logged Out" });
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Failed to destroy session:", err);
+      return res.status(500).json({ message: "Failed to logout" });
+    }
+
+  });
+   return res.status(200).json({ message: "Successfully Logged Out" });
 });
 
 // Get User Data
@@ -258,16 +282,43 @@ const updateUser = asyncHandler(async (req, res) => {
 
 
 const getUsers = asyncHandler(async (req, res) => {
-  
+  try {
     // Fetch all users from the database
     const users = await User.find();
-    if(users){
+
+    // Return the users in JSON format if found
+    if (users) {
       console.log(users);
-      res.status(200).json(users);  // Return the users in JSON format
+      return res.status(200).json(users);
     }
-  
+
+    // If no users are found, send an error response
+    res.status(404).json({ error: 'No users found' });
+  } catch (error) {
+    console.error('Error fetching users:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
+  }
 });
+
+const getApprovedUsers = asyncHandler(async (req, res) => {
+  try {
+    // Fetch all users from the database
+    const users = await User.find({ status: 'approved' });
+
+    // Return the users in JSON format if found
+    if (users) {
+      console.log(users);
+      return res.status(200).json(users);
+    }
+
+    // If no users are found, send an error response
+    res.status(404).json({ error: 'No users found' });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
 
 const changePassword = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
@@ -347,4 +398,5 @@ module.exports = {
   resetPassword,
   getUsers,
   approveUser,
+  getApprovedUsers,
 };

@@ -13,18 +13,34 @@ const upload = uploadMiddleware("uploads");
 // PATCH: Update the status of a deposit by ID
 router.patch('/:id/status', async (req, res) => {
     try {
-        const { status } = req.body;
+        const { status ,amount} = req.body;
 
         // Validate the new status
-        const validStatuses = ["pending", "approved", "rejected"];
+        const validStatuses = ["pending", "approved", "rejected", "seen"];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({ message: `Invalid status. Must be one of: ${validStatuses.join(", ")}` });
         }
 
-        // Find the deposit and update the status
+        // Find the deposit by ID
         const deposit = await Deposit.findById(req.params.id);
-        if (!deposit) return res.status(404).json({ message: 'Deposit not found' });
+        if (!deposit) {
+            return res.status(404).json({ message: 'Deposit not found' });
+        }
 
+        // Check if the status is being updated to "approved"
+        if (status === "approved") {
+            // Find the user associated with the deposit
+            const user = await User.findById(deposit.userId);
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            // Add the deposit amount to the user's balance
+            user.balance += amount;
+            await user.save(); // Save the updated user balance
+        }
+
+        // Update the deposit status
         deposit.status = status;
         const updatedDeposit = await deposit.save();
 
@@ -38,10 +54,11 @@ router.patch('/:id/status', async (req, res) => {
 });
 
 
+
 // CREATE: Add a new deposit
 router.post('/',upload.single('image'), async (req, res) => {
     try {
-        const { userId, status } = req.body;
+        const { userId, status ,amount} = req.body;
         const image = req.file ? req.file.path : null;    
 
         // Check if the user exists
@@ -52,7 +69,8 @@ router.post('/',upload.single('image'), async (req, res) => {
         const deposit = new Deposit({
             userId,
             image,
-            status
+            status,
+            amount
         });
 
         const savedDeposit = await deposit.save();

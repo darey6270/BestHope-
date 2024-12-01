@@ -24,10 +24,27 @@ const userSchema = mongoose.Schema(
     status: {
         type: String,
         required: true,
-        enum: ["pending", "approved", "rejected"],
+        enum: ["pending", "approved", "rejected","seen"],
         default: "pending",
         trim: true,
       },
+      usedReferral: {
+        type: String,
+        required: [true, "Please add a referral id"],
+        minLength: [11, "Referral must be up to 11 characters"],
+        unique: true,
+    },
+    payment: {
+      type: String,
+      required: true,
+      enum: ["unpaid", "paid"],
+      default: "unpaid",
+      trim: true,
+    },
+    amount:{
+      type: Number,
+      default: 0, // Default balance for a new user
+    },
   },
   {
     timestamps: true,

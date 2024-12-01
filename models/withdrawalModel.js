@@ -23,10 +23,27 @@ const withdrawalSchema = mongoose.Schema(
       type: Object,
       default: {},
     },
-    status: {
+    normalStatus: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "declined","seen","unpaid","paid"],
       default: "pending",
+      trim: true,
+    },
+    referralStatus: {
+      type: String,
+      enum: ["pending", "approved", "declined","seen","unpaid","paid"],
+      default: "pending",
+      trim: true,
+    },
+    amount: {
+      type: Number, // Specify the type as Number
+      required: true, // Make it a required field
+      default:0,
+    },
+    type: {
+      type: String,
+      enum: ["normal", "referral", "none"],
+      default: "none",
       trim: true,
     },
   },
@@ -34,6 +51,7 @@ const withdrawalSchema = mongoose.Schema(
     timestamps: true,
   }
 );
+
 
 
 

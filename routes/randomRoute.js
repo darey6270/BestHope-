@@ -19,4 +19,6 @@ router.delete('/:userId', randomController.deleteRecord);
 
 router.get('/unselected', randomController.getselectedUsers);
 
+router.get('/reset', randomController.resetRandomSelectedUser);
+
 module.exports = router;

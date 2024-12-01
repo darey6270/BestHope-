@@ -37,5 +37,5 @@ const userSchema = mongoose.Schema(
   }
 );
 
-const SelectedUser = mongoose.model("SelectedUser", userSchema);
-module.exports = SelectedUser;
+const UnpaidSelectedUser = mongoose.model("UnpaidSelectedUser", userSchema);
+module.exports = UnpaidSelectedUser;
