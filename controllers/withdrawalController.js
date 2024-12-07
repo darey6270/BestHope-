@@ -3,58 +3,79 @@ const router = express.Router();
 const Withdrawal = require("../models/withdrawalModel");
 const User = require("../models/userModel");
 const dotenv = require("dotenv").config();
-const { fileSizeFormatter } = require("../utils/fileUpload");
+const cloudinary = require('../utils/cloudinary'); // Import Cloudinary configuration
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const {fileSizeFormatter } = require("../utils/fileUpload");
 const uploadMiddleware = require("../utils/uploadMiddleware");
 const upload = uploadMiddleware("uploads");
-
+const SelectedReferralUser = require("../models/selectedReferralModel");
 
 // POST: Withdraw the entire referralBalance
 router.post("/withdrawAllReferralBalance", async (req, res) => {
   try {
-    const { userId, bank_name, account_holder_name, account_number} = req.body;
+    const { userId, bank_name, account_holder_name, account_number } = req.body;
+    console.log("Request Body:", req.body);
+
+    // Validate request body
+    if (!userId || !bank_name || !account_holder_name || !account_number) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
 
     // Find the user
     const user = await User.findById(userId);
     if (!user) {
+      console.log("User not found with ID:", userId);
       return res.status(404).json({ message: "User not found." });
     }
 
     // Ensure referralBalance is greater than zero
     if (user.referralBalance <= 0) {
-      return res
-        .status(400)
-        .json({ message: "No referral balance available for withdrawal." });
+      console.log("No referral balance available for withdrawal.");
+      return res.status(400).json({ message: "No referral balance available for withdrawal." });
     }
 
-    
-      existingWithdrawal = new Withdrawal({
-        userId,
-        bank_name,
-        account_holder_name,
-        account_number,
-        image:"",
-        normalStatus: "pending",
-        referralStatus: "approved",
-        amount: user.referralBalance, // Set amount to the referralBalance
-        type:"referral",
-      });
-   
+    // Create a new withdrawal record
+    const existingWithdrawal = new Withdrawal({
+      userId,
+      bank_name,
+      account_holder_name,
+      account_number,
+      image: "",
+      normalStatus: "pending",
+      referralStatus: "approved",
+      amount: user.referralBalance,
+      type: "referral",
+    });
 
-    // Save the withdrawal record
     const savedWithdrawal = await existingWithdrawal.save();
+    console.log("Withdrawal saved:", savedWithdrawal);
 
-    // Set referralBalance to zero
-    user.referralBalance = 0;
-    await user.save();
+
+    await User.updateOne(
+      { _id: userId },
+      { referralBalance: 0 }
+    );
+    
+    console.log("User referral balance reset to 0.");
+
+    // Create a referral entry
+    const selectedReferral = await SelectedReferralUser.create({
+      userId,
+      withdrawalId: savedWithdrawal._id,
+      status: "normal",
+    });
+    console.log("New selected user for withdrawal:", selectedReferral);
 
     res.status(200).json({
       message: "Referral balance withdrawn successfully.",
       withdrawal: savedWithdrawal,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error processing withdrawal:", error);
+    res.status(500).json({ message: "Server error. Please try again later." });
   }
 });
+
 
 
 // Approve withdrawals for users with referralBalance >= 10,000
@@ -71,7 +92,7 @@ router.get("/autoApprove", async (req, res) => {
     const approvedWithdrawals = [];
 
     for (const user of eligibleUsers) {
-      new Withdrawal({
+      pendingWithdrawal=new Withdrawal({
         userId:user._id,
         bank_name:"",
         account_holder_name:"",
@@ -90,6 +111,8 @@ router.get("/autoApprove", async (req, res) => {
       // Deduct the withdrawal amount from the user's referralBalance
       user.referralBalance = 0;
       await user.save();
+
+      const selectedReferral= await SelectedReferralUser.Create({userId:user._id,withdrawalId:pendingWithdrawal._id,status:"autoapprover"});
     }
 
     if (!approvedWithdrawals.length) {
@@ -106,6 +129,33 @@ router.get("/autoApprove", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+
+router.get("/getSelectedReferralWithdrawals", async (req, res) => {
+  try {
+    // Fetch all SelectedReferralUser documents
+    const selectedReferralUsers = await SelectedReferralUser.find();
+
+    if (!selectedReferralUsers.length) {
+      console.log("No selected referrals found");
+      return res.status(200).json({ message: "No SelectedReferralUsers found", withdrawals: [] });
+    }
+    console.log("It reaches the selected referral");
+
+    // Extract withdrawalIds
+    const withdrawalIds = selectedReferralUsers.map((user) => user.withdrawalId);
+
+    // Fetch all Withdrawals that match the withdrawalIds
+    const withdrawals = await Withdrawal.find({ _id: { $in: withdrawalIds } });
+
+    return res.status(200).json({ withdrawals });
+  } catch (error) {
+    console.error("Error fetching withdrawals:", error);
+    res.status(500).json({ message: "Error fetching withdrawals" });
+  }
+});
+
+
 
 // PATCH: Update the status of a withdrawal by ID
 router.patch("/:id/normal-status", async (req, res) => {
@@ -279,10 +329,10 @@ router.get("/referral", async (req, res) => {
 // READ: Get a single withdrawal by userId
 router.get("/normal/:id", async (req, res) => {
   try {
-    const userId = req.params.id;
+    const _id = req.params.id;
     const normalStatus="approved";
     const type="normal";
-    const withdrawal = await Withdrawal.find({ userId ,normalStatus, type}).populate("userId","username email referral image");
+    const withdrawal = await Withdrawal.find({ _id ,normalStatus, type}).populate("userId","username email referral image");
 
     if (!withdrawal.length) {
       return res
@@ -316,16 +366,55 @@ router.get("/referral/:id", async (req, res) => {
   }
 });
 
+router.put("/referral/paid/:id", async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const referralStatus="paid";
+    const type="referral";
+    const withdrawal = await Withdrawal.findById()
+          withdrawal.referralStatus = "paid";
+    const updatedWithdrawal = await withdrawal.save();
+    if (!withdrawal.length) {
+      return res
+        .status(404)
+        .json({ message: "No withdrawals  found for this user." });
+    }
+
+    res.status(200).json(withdrawal);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // UPDATE: Update a withdrawal by ID
-router.put("/:id", async (req, res) => {
+router.put("/uploadReceipt/:id",upload.single("image"), async (req, res) => {
+  try {
+    let {image} = req.body;
+    image = req.file ? req.file.path : null;
+
+
+    const withdrawal = await Withdrawal.findById(req.params.id);
+    if (!withdrawal) {
+      return res.status(404).json({ message: "unable to upload receipt withdrawal not found." });
+    }
+
+
+    if (image !== undefined) withdrawal.image = image;
+        withdrawal.status="paid";
+
+    const updatedWithdrawal = await withdrawal.save();
+    res.status(200).json(updatedWithdrawal);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.put("/update/accountdetails/:id", async (req, res) => {
   try {
     const {
       bank_name,
       account_holder_name,
       account_number,
-      amount,
-      image,
-      status,
     } = req.body;
 
     const withdrawal = await Withdrawal.findById(req.params.id);
@@ -337,9 +426,7 @@ router.put("/:id", async (req, res) => {
     if (account_holder_name !== undefined)
       withdrawal.account_holder_name = account_holder_name;
     if (account_number !== undefined) withdrawal.account_number = account_number;
-    if (amount !== undefined) withdrawal.amount = amount; // Update amount if provided
-    if (image !== undefined) withdrawal.image = image;
-    if (status !== undefined) withdrawal.status = status;
+  
 
     const updatedWithdrawal = await withdrawal.save();
     res.status(200).json(updatedWithdrawal);

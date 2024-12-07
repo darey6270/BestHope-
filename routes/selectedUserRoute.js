@@ -6,6 +6,7 @@ const {
   getUserById,
   updateUser,
   deleteUser,
+  paidUser,
 } = require('../controllers/selectedUserController');
 
 // Create a new user
@@ -22,5 +23,7 @@ router.put('/:id', updateUser);
 
 // Delete a user by ID
 router.delete('/:id', deleteUser);
+
+router.put('/paidUser/:id',paidUser);
 
 module.exports = router;

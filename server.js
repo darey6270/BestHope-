@@ -14,7 +14,8 @@ const randomRoutes = require('./routes/randomRoute');
 const userReferralRoutes = require("./routes/userReferralRoute");
 const selectedUserRoutes = require('./routes/selectedUserRoute');
 const Chat=require("./models/Chat");
-const UnpaidSelectedUser = require("./models/unpaidSelectedUserModel");
+const UnpaidSelectedUser = require("./routes/unpaidSelectedUserRoute");
+const selectedReferralUserRoutes = require('./routes/selectedReferralUserRoute');
 
 const app = express();
 const http = require("http").createServer(app);
@@ -49,6 +50,7 @@ app.use("/api/user-referrals", userReferralRoutes);
 app.use('/api/selectedUsers', selectedUserRoutes);
 app.use('/api/socials', require('./controllers/socialController'));
 app.use('/api/unpaidSelectedUsers', UnpaidSelectedUser);
+app.use('/api/selectedReferralUser', selectedReferralUserRoutes);
 
 
 // Socket.IO Events

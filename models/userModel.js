@@ -75,7 +75,7 @@ const userSchema = mongoose.Schema(
     },
     referralStatus: {
       type: String,
-      enum: ["unpaid", "paid"],
+      enum: ["unpaid", "paid","pending", "approved", "declined","seen"],
       default: "unpaid",
       trim: true,
     },

@@ -107,6 +107,7 @@ const getUserById = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { username, fullname, referral, image, status ,amount,userId,withdrawalId} = req.body;
+
     const user = await SelectedUser.findById(req.params.id);
 
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -116,7 +117,24 @@ const updateUser = async (req, res) => {
     if (referral !== undefined) user.referral = referral;
     if (image !== undefined) user.image = image;
     if (status !== undefined) user.status = status;
+    if (amount !== undefined) user.amount = amount;
+    if (userId !== undefined) user.userId = userId;
+    if (withdrawalId !== undefined) user.withdrawalId = withdrawalId;
 
+    const updatedUser = await user.save();
+    res.status(200).json(updatedUser);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+const paidUser = async (req, res) => {
+  try {
+
+    const user = await SelectedUser.findById(req.params.id);
+
+    if (!user) return res.status(404).json({ message: 'Selected user not found' });
+      user.status = "paid";
     const updatedUser = await user.save();
     res.status(200).json(updatedUser);
   } catch (error) {
@@ -142,4 +160,5 @@ module.exports = {
   updateUser,
   deleteUser,
   createUsersAndApproveWithdrawals,
+  paidUser,
 };

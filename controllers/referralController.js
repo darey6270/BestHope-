@@ -84,7 +84,7 @@ exports.getUserReferrals = async (req, res) => {
     const userReferrals = await Referral.find({ userId }).populate('userId', 'username referral image usedReferral balance referralBalance ');;
 
     if (!userReferrals.length) {
-      return res.status(404).json({ message: 'No referrals found for this user' });
+      return res.status(200).json({ message: 'No referrals found for this user' });
     }
 
     res.status(200).json(userReferrals);

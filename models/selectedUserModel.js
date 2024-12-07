@@ -17,7 +17,7 @@ const userSchema = mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "declined","seen","unpaid","paid"],
+      enum:["pending", "approved", "declined","seen","unpaid","paid"],
       default: "pending",
       trim: true,
     },

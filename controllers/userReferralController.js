@@ -13,7 +13,7 @@ const getUsersByReferral = asyncHandler(async (req, res) => {
   const userReferrals = await UserReferral.find({ usedReferral });
 
   if (!userReferrals || userReferrals.length === 0) {
-    res.status(404);
+    res.status(200);
     throw new Error("No users found with the specified referral");
   }
 

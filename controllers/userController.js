@@ -26,7 +26,7 @@ const generateReferralCode = async () => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-  const {
+  let {
     username, fullname, country, city, age, phone,
     referral, email, password, address, gender, status,
     userStatus, referralStatus, balance, referralBalance
@@ -50,6 +50,12 @@ const registerUser = asyncHandler(async (req, res) => {
   const userExists = await User.findOne({ email });
   if (userExists) {
     throw new Error("Email has already been registered");
+  }
+
+  const referralExists = await User.findOne({ referral });
+  
+  if (!referralExists) {
+    throw new Error(`No user exist with this referral Id:${referral}`);
   }
 
   // Handle referrals
@@ -169,12 +175,7 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new Error("Please add email and password");
   }
    
-  // try {
-  //   await autoApproveWithdrawals(req, res);
-  // } catch (error) {
-  //   console.error('Error auto approving withdrawal status:', error.message);
-  // }
-  // Check if user exists
+  
   const user = await User.findOne({ username });
 
   if (!user) {
@@ -188,13 +189,21 @@ const loginUser = asyncHandler(async (req, res) => {
 
 
   if (user && passwordIsCorrect) {
-    const { _id, username,fullname,country,city,age,phone,referral, email, password,address,image,gender ,status} = user;
+    const { _id, username,fullname,country,city,age,phone,referral, email, password,address,image,gender ,status,userStatus,
+      referralStatus,
+      balance,
+      referralBalance,
+      usedReferral,} = user;
     
     req.session.user = { id: user._id, email: user.email };
     res.status(200).json({
       _id,
       username,fullname,country,city,age,phone,referral,
-      email, password,address,image,gender,status
+      email, password,address,image,gender,status,userStatus,
+      referralStatus,
+      balance,
+      referralBalance,
+      usedReferral,
     });
   } else {
     res.status(400);
@@ -224,10 +233,17 @@ const getUser = asyncHandler(async (req, res) => {
   const user = await User.findById(id);
 
   if (user) {
-    const { _id, username,fullname,country,city,age,phone,referral, email, password,address,image,gender ,status} = user;
+    const {  _id, username,fullname,country,city,age,phone,referral, email, password,address,image,gender ,status,userStatus,
+      referralStatus,
+      balance,
+      referralBalance,
+      usedReferral,} = user;
     res.status(200).json({
-      _id,
-      username,fullname,country,city,age,phone,referral, email, password,address,image,gender,status});
+      _id, username,fullname,country,city,age,phone,referral, email, password,address,image,gender ,status,userStatus,
+      referralStatus,
+      balance,
+      referralBalance,
+      usedReferral,});
   } else {
     res.status(400);
     throw new Error("User Not Found");
