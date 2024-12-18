@@ -22,6 +22,11 @@ const depositSchema = mongoose.Schema(
       type: Number,
       default: 0, // Default balance for a new user
     },
+    currentPeriod: { type: String }, // e.g., "March 2024"
+    notes: {
+      type: String,
+      trim: true,
+    }
   },
   {
     timestamps: true,

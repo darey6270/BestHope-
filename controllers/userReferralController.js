@@ -9,7 +9,7 @@ const getAllUserReferrals = asyncHandler(async (req, res) => {
 
 // Get UserReferrals by referral
 const getUsersByReferral = asyncHandler(async (req, res) => {
-  const { usedReferral } = req.params;
+  const usedReferral = req.params.referral;
   const userReferrals = await UserReferral.find({ usedReferral });
 
   if (!userReferrals || userReferrals.length === 0) {

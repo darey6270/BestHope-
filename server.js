@@ -16,6 +16,8 @@ const selectedUserRoutes = require('./routes/selectedUserRoute');
 const Chat=require("./models/Chat");
 const UnpaidSelectedUser = require("./routes/unpaidSelectedUserRoute");
 const selectedReferralUserRoutes = require('./routes/selectedReferralUserRoute');
+const ConfigRoutes = require("./routes/ConfigRoutes");
+const depositBoxRoutes = require("./routes/depositBoxRoute")
 
 const app = express();
 const http = require("http").createServer(app);
@@ -51,6 +53,10 @@ app.use('/api/selectedUsers', selectedUserRoutes);
 app.use('/api/socials', require('./controllers/socialController'));
 app.use('/api/unpaidSelectedUsers', UnpaidSelectedUser);
 app.use('/api/selectedReferralUser', selectedReferralUserRoutes);
+app.use('/api/configs', ConfigRoutes);
+app.use("/api/deposit-boxes", depositBoxRoutes);
+
+
 
 
 // Socket.IO Events

@@ -9,6 +9,7 @@ const {fileSizeFormatter } = require("../utils/fileUpload");
 const uploadMiddleware = require("../utils/uploadMiddleware");
 const upload = uploadMiddleware("uploads");
 const SelectedReferralUser = require("../models/selectedReferralModel");
+const Referral = require('../models/referralModel');
 
 // POST: Withdraw the entire referralBalance
 router.post("/withdrawAllReferralBalance", async (req, res) => {
@@ -54,6 +55,12 @@ router.post("/withdrawAllReferralBalance", async (req, res) => {
     await User.updateOne(
       { _id: userId },
       { referralBalance: 0 }
+    );
+
+
+    await Referral.updateOne(
+      { userId },
+      { referralledCount: 0,amount:0 , total:0}
     );
     
     console.log("User referral balance reset to 0.");
@@ -329,10 +336,10 @@ router.get("/referral", async (req, res) => {
 // READ: Get a single withdrawal by userId
 router.get("/normal/:id", async (req, res) => {
   try {
+    const userId = req.params.id;
     const _id = req.params.id;
-    const normalStatus="approved";
     const type="normal";
-    const withdrawal = await Withdrawal.find({ _id ,normalStatus, type}).populate("userId","username email referral image");
+    const withdrawal = await Withdrawal.find({ _id , type}).populate("userId","username email referral image");
 
     if (!withdrawal.length) {
       return res
@@ -350,7 +357,7 @@ router.get("/normal/:id", async (req, res) => {
 router.get("/referral/:id", async (req, res) => {
   try {
     const userId = req.params.id;
-    const referralStatus="approved";
+    const referralStatus="paid";
     const type="referral";
     const withdrawal = await Withdrawal.find({ userId ,referralStatus, type}).populate("userId","username email referral image");
 
@@ -371,7 +378,7 @@ router.put("/referral/paid/:id", async (req, res) => {
     const userId = req.params.id;
     const referralStatus="paid";
     const type="referral";
-    const withdrawal = await Withdrawal.findById()
+    const withdrawal = await Withdrawal.findById(req.params.id);
           withdrawal.referralStatus = "paid";
     const updatedWithdrawal = await withdrawal.save();
     if (!withdrawal.length) {
@@ -387,7 +394,7 @@ router.put("/referral/paid/:id", async (req, res) => {
 });
 
 // UPDATE: Update a withdrawal by ID
-router.put("/uploadReceipt/:id",upload.single("image"), async (req, res) => {
+router.put("/uploadReceipt/referral/:id",upload.single("image"), async (req, res) => {
   try {
     let {image} = req.body;
     image = req.file ? req.file.path : null;
@@ -400,7 +407,29 @@ router.put("/uploadReceipt/:id",upload.single("image"), async (req, res) => {
 
 
     if (image !== undefined) withdrawal.image = image;
-        withdrawal.status="paid";
+        withdrawal.referralStatus="paid";
+
+    const updatedWithdrawal = await withdrawal.save();
+    res.status(200).json(updatedWithdrawal);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.put("/uploadReceipt/normal/:id",upload.single("image"), async (req, res) => {
+  try {
+    let {image} = req.body;
+    image = req.file ? req.file.path : null;
+
+
+    const withdrawal = await Withdrawal.findById(req.params.id);
+    if (!withdrawal) {
+      return res.status(404).json({ message: "unable to upload receipt withdrawal not found." });
+    }
+
+
+    if (image !== undefined) withdrawal.image = image;
+        withdrawal.normalStatus="paid";
 
     const updatedWithdrawal = await withdrawal.save();
     res.status(200).json(updatedWithdrawal);

@@ -7,11 +7,11 @@ router.post('/', async (req, res) => {
     try {
         const { whatsapp, instagram, tiktok,facebook,youtube,twitter } = req.body;
 
-        const Social = new Social({
+        const social = new Social({
             whatsapp, instagram, tiktok,facebook,youtube,twitter
         });
 
-        const savedSocial = await Social.save();
+        const savedSocial = await social.save();
         res.status(201).json(savedSocial);
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -21,8 +21,8 @@ router.post('/', async (req, res) => {
 // READ: Get all Socials
 router.get('/', async (req, res) => {
     try {
-        const Socials = await Social.find();
-        res.status(200).json(Socials);
+        const socials = await Social.find();
+        res.status(200).json(socials);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -31,9 +31,9 @@ router.get('/', async (req, res) => {
 // READ: Get a single Social by ID
 router.get('/:id', async (req, res) => {
     try {
-        const Social = await Social.findById(req.params.id);
-        if (!Social) return res.status(404).json({ message: 'Social not found' });
-        res.status(200).json(Social);
+        const social = await Social.findById(req.params.id);
+        if (!social) return res.status(404).json({ message: 'Social not found' });
+        res.status(200).json(social);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -43,19 +43,20 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { whatsapp, instagram, tiktok,facebook,youtube,twitter } = req.body;
+        
 
-        const Social = await Social.findById(req.params.id);
-        if (!Social) return res.status(404).json({ message: 'Social not found' });
+        const social = await Social.findById(req.params.id);
+        if (!social) return res.status(404).json({ message: 'Social not found' });
 
         // Update fields if provided in the request body
-        if (whatsapp !== undefined) Social.whatsapp = whatsapp;
-        if (instagram !== undefined) Social.instagram = instagram;
-        if (tiktok !== undefined) Social.tiktok = tiktok;
-        if (facebook !== undefined) Social.facebook = facebook;
-        if (youtube !== undefined) Social.youtube = youtube;
-        if (twitter !== undefined) Social.twitter = twitter;
+        if (whatsapp !== undefined) social.whatsapp = whatsapp;
+        if (instagram !== undefined) social.instagram = instagram;
+        if (tiktok !== undefined) social.tiktok = tiktok;
+        if (facebook !== undefined) social.facebook = facebook;
+        if (youtube !== undefined) social.youtube = youtube;
+        if (twitter !== undefined) social.twitter = twitter;
 
-        const updatedSocial = await Social.save();
+        const updatedSocial = await social.save();
         res.status(200).json(updatedSocial);
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -65,8 +66,8 @@ router.put('/:id', async (req, res) => {
 // DELETE: Delete an Social by ID
 router.delete('/:id', async (req, res) => {
     try {
-        const Social = await Social.findByIdAndDelete(req.params.id);
-        if (!Social) return res.status(404).json({ message: 'Social not found' });
+        const social = await Social.findByIdAndDelete(req.params.id);
+        if (!social) return res.status(404).json({ message: 'Social not found' });
         res.status(200).json({ message: 'Social deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });

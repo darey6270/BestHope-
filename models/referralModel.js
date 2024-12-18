@@ -17,6 +17,11 @@ const referralSchema = mongoose.Schema(
       required: true,
       default: 500,
     },
+    total: {
+      type: Number,
+      required: false,
+      default: 0,
+    },
   },
   {
     timestamps: true,

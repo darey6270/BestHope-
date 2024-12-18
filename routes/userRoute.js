@@ -13,6 +13,7 @@ const {
   getUsers,
   approveUser,
   getApprovedUsers,
+  userContribution,
 } = require("../controllers/userController");
 const protect = require("../middleWare/authMiddleware");
 const {fileSizeFormatter } = require("../utils/fileUpload");
@@ -28,9 +29,10 @@ router.get("/getuser/:id", getUser);
 router.get("/loggedin", loginStatus);
 router.patch("/updateuser", updateUser);
 router.patch("/changepassword", changePassword);
-router.post("/forgotpassword", forgotPassword);
+router.put("/forgotpassword/:email", forgotPassword);
 router.put("/resetpassword/:userId", resetPassword);
 router.put("/approveuser/:id", approveUser);
 router.get("/getApprovedUsers", getApprovedUsers);
+router.get("/userContribution", userContribution);
 
 module.exports = router;

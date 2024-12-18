@@ -3,6 +3,7 @@ const Withdrawal=require('../models/withdrawalModel');
 const {updateWithdrawalStatus,autoAppoveWithdrawal} = require("../controllers/withdrawController");
 const SelectedUser=require('../models/selectedUserModel');
 const asyncHandler = require('express-async-handler');
+const User=require('../models/userModel');
 
 // Create a new record
 exports.createRandomRecord = async (req, res) => {
@@ -78,13 +79,18 @@ exports.bulkUpdateExclusion = async (req, res) => {
       for (const userId of userIds) {
         try {
           await RandomModel.create({ userId:userId._id, notes:"you are among the selected user",excluded:true });
+
           // Create new user
   const withdrawal = await Withdrawal.create({ userId:userId._id,bank_name:"",account_holder_name:"",account_number:"",image:"",normalStatus: "approved",referralStatus: "pending",amount:amounts,type:"normal"});
 
     let {_id}=withdrawal;
 
     const selectedUser = await SelectedUser.create({ username:userId.username, fullname:userId.fullname, referral:userId.referral, image:userId.image, status:"approved", amount:amounts, userId:userId._id,withdrawalId:withdrawal._id});
-
+    
+    await User.updateOne(
+      { _id: userId },
+      { isSelectedWithdraw: true,withdrawalId:withdrawal._id }
+    );
           console.log(`user with this id number ${userId._id} was approved`);
         } catch (error) {
           console.error('Error updating withdrawal status:', error.message);

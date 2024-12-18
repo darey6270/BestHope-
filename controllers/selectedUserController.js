@@ -135,6 +135,13 @@ const paidUser = async (req, res) => {
 
     if (!user) return res.status(404).json({ message: 'Selected user not found' });
       user.status = "paid";
+
+      await User.findByIdAndUpdate(
+        user.userId,
+        { isSelectedWithdraw:false ,withdrawalId:""},
+        { new: true }
+      );
+
     const updatedUser = await user.save();
     res.status(200).json(updatedUser);
   } catch (error) {

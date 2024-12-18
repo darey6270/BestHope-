@@ -7,6 +7,7 @@ const sendEmail = require("../utils/sendEmail");
 const dotenv = require("dotenv").config();
 const cloudinary = require('../utils/cloudinary');
 const UserReferral = require("../models/userReferralModel");
+const Config = require("../models/Config");
 
 // Function to generate a unique referral code
 const generateReferralCode = async () => {
@@ -29,7 +30,7 @@ const registerUser = asyncHandler(async (req, res) => {
   let {
     username, fullname, country, city, age, phone,
     referral, email, password, address, gender, status,
-    userStatus, referralStatus, balance, referralBalance
+    userStatus, referralStatus, balance, referralBalance,currentPeriod
   } = req.body;
   
   const image = req.file ? req.file.path : null;
@@ -41,10 +42,7 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error("Please fill in all required fields");
   }
 
-  if (password.length < 6) {
-    res.status(400);
-    throw new Error("Password must be at least 6 characters");
-  }
+ 
 
   // Check if user email already exists
   const userExists = await User.findOne({ email });
@@ -52,7 +50,7 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error("Email has already been registered");
   }
 
-  const referralExists = await User.findOne({ referral });
+  const referralExists = await User.findOne({ referral:usedReferral });
   
   if (!referralExists) {
     throw new Error(`No user exist with this referral Id:${referral}`);
@@ -60,7 +58,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // Handle referrals
   if (referral) {
-    const referringUser = await User.findOne({ referral });
+    const referringUser = await User.findOne({ referral:usedReferral });
     if (referringUser) {
       const existingReferral = await Referral.findOne({ userId: referringUser._id });
       if (existingReferral) {
@@ -107,8 +105,10 @@ const registerUser = asyncHandler(async (req, res) => {
   // Generate unique referral code for the new user
   const uniqueReferralCode = await generateReferralCode();
 
-  // Create new user
-  const hashedPassword = await bcrypt.hash(password, 10);
+  // Hash password
+    // // const salt = await bcrypt.genSalt(10);
+    // const hashedPassword = await bcrypt.hash(password, 8);
+  
   const user = await User.create({
     username,
     fullname,
@@ -118,7 +118,7 @@ const registerUser = asyncHandler(async (req, res) => {
     phone,
     referral: uniqueReferralCode,
     email,
-    password: hashedPassword,
+    password,
     address,
     image,
     gender,
@@ -128,6 +128,7 @@ const registerUser = asyncHandler(async (req, res) => {
     balance,
     referralBalance,
     usedReferral,
+    currentPeriod
   });
 
   if (user) {
@@ -165,54 +166,96 @@ const registerUser = asyncHandler(async (req, res) => {
 
 
 
-// Login User
 const loginUser = asyncHandler(async (req, res) => {
   const { username, password } = req.body;
+
+  console.log(`Received username: ${username}, password: ${password}`);
 
   // Validate Request
   if (!username || !password) {
     res.status(400);
-    throw new Error("Please add email and password");
+    throw new Error("Please add username and password");
   }
-   
-  
-  const user = await User.findOne({ username });
 
+  // Check if user exists
+  const usernameExists = await User.findOne({ username});
+
+  if(!usernameExists){
+    res.status(400);
+    throw new Error("Username is not found or registered with us, please signup");
+  }
+
+  // Check if user exists
+  const user = await User.findOne({ username , password});
   if (!user) {
     res.status(400);
-    throw new Error("User not found, please signup");
+    throw new Error("Username and passworo not found, please signup");
   }
-
-  // User exists, check if password is correct
+ 
   const passwordIsCorrect = await bcrypt.compare(password, user.password);
-  // await autoAppoveWithdrawal();
+  // console.log(`Password match: ${passwordIsCorrect}`);
 
+  // console.log(`Hashed Password from DB: ${user.password}`);
+  // console.log(`Provided Password: ${password}`);
 
-  if (user && passwordIsCorrect) {
-    const { _id, username,fullname,country,city,age,phone,referral, email, password,address,image,gender ,status,userStatus,
-      referralStatus,
-      balance,
-      referralBalance,
-      usedReferral,} = user;
-    
-    req.session.user = { id: user._id, email: user.email };
-    res.status(200).json({
-      _id,
-      username,fullname,country,city,age,phone,referral,
-      email, password,address,image,gender,status,userStatus,
-      referralStatus,
-      balance,
-      referralBalance,
-      usedReferral,
-    });
-  } else {
-    res.status(400);
-    throw new Error("Invalid email or password");
-  }
-   
+  // // Validate Password
+  // const passwordIsCorrect = await bcrypt.compare(password, user.password);
+  // console.log(`Password match: ${passwordIsCorrect}`);
 
+  // if (!passwordIsCorrect) {
+  //   res.status(400);
+  //   throw new Error("Invalid Username or password");
+  // }
 
+  // Successful Login: Return User Info
+  const {
+    _id,
+    username: userUsername,
+    fullname,
+    country,
+    city,
+    age,
+    phone,
+    referral,
+    email,
+    address,
+    image,
+    gender,
+    status,
+    userStatus,
+    referralStatus,
+    balance,
+    referralBalance,
+    usedReferral,
+    currentPeriod,
+  } = user;
+
+  // Store session data
+  req.session.user = { id: _id, email };
+
+  res.status(200).json({
+    _id,
+    username: userUsername,
+    fullname,
+    country,
+    city,
+    age,
+    phone,
+    referral,
+    email,
+    address,
+    image,
+    gender,
+    status,
+    userStatus,
+    referralStatus,
+    balance,
+    referralBalance,
+    usedReferral,
+    currentPeriod,
+  });
 });
+
 
 // Logout User
 const logout = asyncHandler(async (req, res) => {
@@ -237,13 +280,13 @@ const getUser = asyncHandler(async (req, res) => {
       referralStatus,
       balance,
       referralBalance,
-      usedReferral,} = user;
+      usedReferral,currentPeriod} = user;
     res.status(200).json({
       _id, username,fullname,country,city,age,phone,referral, email, password,address,image,gender ,status,userStatus,
       referralStatus,
       balance,
       referralBalance,
-      usedReferral,});
+      usedReferral,currentPeriod});
   } else {
     res.status(400);
     throw new Error("User Not Found");
@@ -351,10 +394,10 @@ const changePassword = asyncHandler(async (req, res) => {
   }
 
   // check if old password matches password in DB
-  const passwordIsCorrect = await bcrypt.compare(oldPassword, user.password);
+  // const passwordIsCorrect = await bcrypt.compare(oldPassword, user.password);
 
   // Save new password
-  if (user && passwordIsCorrect) {
+  if (user) {
     user.password = password;
     await user.save();
     res.status(200).send("Password change successful");
@@ -365,12 +408,22 @@ const changePassword = asyncHandler(async (req, res) => {
 });
 
 const forgotPassword = asyncHandler(async (req, res) => {
-  const { email } = req.body;
+  const { email} = req.params;
   const user = await User.findOne({ email });
 
   if (!user) {
     res.status(404);
     throw new Error("User does not exist");
+  }
+  
+  // Save new password
+  if (user) {
+    user.password = req.body.password;
+    await user.save();
+    res.status(200).send("Password change successful");
+  } else {
+    res.status(400);
+    throw new Error("Old password is incorrect");
   }
 
 });
@@ -402,6 +455,30 @@ const approveUser = async (req, res) => {
   }
 }
 
+
+
+const userContribution = async (req, res) => {
+  try {
+    // Fetch all users from the database
+    const current_period = await Config.findOne({ key: "currentPeriod" });
+    const currentPer=current_period ? current_period.value : "";
+    console.log(`currentPer ${currentPer}`);
+    const users = await User.find({ currentPeriod: currentPer});
+
+    // Return the users in JSON format if found
+    if (users) {
+      console.log(users);
+      return res.status(200).json(users);
+    }
+
+    // If no users are found, send an error response
+    res.status(404).json({ error: 'No users found' });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+}
+
 module.exports = {
   registerUser,
   loginUser,
@@ -415,4 +492,5 @@ module.exports = {
   getUsers,
   approveUser,
   getApprovedUsers,
+  userContribution,
 };

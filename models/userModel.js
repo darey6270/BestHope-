@@ -5,23 +5,23 @@ const userSchema = mongoose.Schema(
   {
     username: {
       type: String,
-      required: [true, "Please add a username"],
+      required: [false, "Please add a username"],
     },
     fullname: {
       type: String,
-      required: [true, "Please add a fullname"],
+      required: [false, "Please add a fullname"],
     },
     country: {
       type: String,
-      required: [true, "Please add a country"],
+      required: [false, "Please add a country"],
     },
     city: {
       type: String,
-      required: [true, "Please add a city"],
+      required: [false, "Please add a city"],
     },
     age: {
       type: String,
-      required: [true, "Please add a age"],
+      required: [false, "Please add a age"],
     },
     phone: {
       type: String,
@@ -29,13 +29,13 @@ const userSchema = mongoose.Schema(
     },
     referral: {
       type: String,
-      required: [true, "Please add a referral id"],
+      required: [false, "Please add a referral id"],
       minLength: [11, "Referral must be up to 11 characters"],
       unique: true,
     },
     email: {
       type: String,
-      required: [true, "Please add a email"],
+      required: [false, "Please add a email"],
       unique: true,
       trim: true,
       match: [
@@ -45,16 +45,15 @@ const userSchema = mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, "Please add a password"],
-      minLength: [6, "Password must be up to 6 characters"],
+      required: [false, "Please add a password"],
     },
     address: {
       type: String,
-      required: [true, "Please add an address"],
+      required: [false, "Please add an address"],
     },
     image: {
       type: String,
-      required: [true, "Please add a photo"],
+      required: [false, "Please add a photo"],
       default: "https://i.ibb.co/4pDNDk1/avatar.png",
     },
     gender: {
@@ -68,7 +67,7 @@ const userSchema = mongoose.Schema(
     },
     userStatus: {
       type: String,
-      required: true,
+      required: false,
       enum: ["unpaid", "paid"],
       default: "unpaid",
       trim: true,
@@ -89,11 +88,13 @@ const userSchema = mongoose.Schema(
   },
   usedReferral: {
     type: String,
-    required: [true, "Please add a referral id"],
+    required: false,
     minLength: [11, "Referral must be up to 11 characters"],
     unique: true,
 },
-  
+isSelectedWithdraw: { type: Boolean, default: false },
+withdrawId: { type: String, default: "0" },
+currentPeriod: { type: String }, // e.g., "March 2024"
 },
 {
   timestamps: true,
@@ -101,17 +102,17 @@ const userSchema = mongoose.Schema(
 );
 
 // Encrypt password before saving to DB
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) {
-    return next();
-  }
+// userSchema.pre("save", async function (next) {
+//   if (!this.isModified("password")) {
+//     return next();
+//   }
 
-  // Hash password
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(this.password, salt);
-  this.password = hashedPassword;
-  next();
-});
+//   // Hash password
+//   // const salt = await bcrypt.genSalt(10);
+//   const hashedPassword = await bcrypt.hash(this.password, 10);
+//   this.password = hashedPassword;
+//   next();
+// });
 
 const User = mongoose.model("User", userSchema);
 module.exports = User;
