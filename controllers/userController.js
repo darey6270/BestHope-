@@ -2,8 +2,6 @@ const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel");
 const Referral = require("../models/referralModel");
 const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
-const sendEmail = require("../utils/sendEmail");
 const dotenv = require("dotenv").config();
 const cloudinary = require('../utils/cloudinary');
 const UserReferral = require("../models/userReferralModel");
@@ -47,60 +45,21 @@ const registerUser = asyncHandler(async (req, res) => {
   // Check if user email already exists
   const userExists = await User.findOne({ email });
   if (userExists) {
-    throw new Error("Email has already been registered");
+    res.status(400).json("Email has already been registered");
+  }
+
+  const usernameExists = await User.findOne({ username });
+  if (usernameExists) {
+    res.status(400).json("Username has already been registered");
   }
 
   const referralExists = await User.findOne({ referral:usedReferral });
   
   if (!referralExists) {
-    throw new Error(`No user exist with this referral Id:${referral}`);
+    res.status(400).json(`No user exist with this referral Id:${referral}`);
   }
 
-  // Handle referrals
-  if (referral) {
-    const referringUser = await User.findOne({ referral:usedReferral });
-    if (referringUser) {
-      const existingReferral = await Referral.findOne({ userId: referringUser._id });
-      if (existingReferral) {
-        // Update referral stats
-        const updatedReferralledCount = existingReferral.referralledCount + 1;
-        const newTotal = updatedReferralledCount * existingReferral.amount;
-
-        await Referral.findByIdAndUpdate(
-          existingReferral._id,
-          { referralledCount: updatedReferralledCount, total: newTotal },
-          { new: true }
-        );
-
-        await User.findByIdAndUpdate(
-          referringUser._id,
-          { referralBalance: newTotal },
-          { new: true }
-        );
-      } else {
-        // Create new Referral document
-        const initialCount = 1;
-        const amountPerReferral = 500;
-        const initialTotal = initialCount * amountPerReferral;
-
-        await Referral.create({
-          userId: referringUser._id,
-          referralledCount: initialCount,
-          amount: amountPerReferral,
-          total: initialTotal,
-        });
-
-        await User.findByIdAndUpdate(
-          referringUser._id,
-          { referralBalance: initialTotal },
-          { new: true }
-        );
-      }
-    } else {
-      res.status(400);
-      throw new Error("Invalid referral code");
-    }
-  }
+ 
 
   // Generate unique referral code for the new user
   const uniqueReferralCode = await generateReferralCode();

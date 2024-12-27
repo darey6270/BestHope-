@@ -6,6 +6,7 @@ const userSchema = mongoose.Schema(
     username: {
       type: String,
       required: [false, "Please add a username"],
+      unique:true,
     },
     fullname: {
       type: String,
@@ -84,7 +85,6 @@ const userSchema = mongoose.Schema(
     },
     referralBalance: {
       type: Number,
-      default: 0, // Separate field for referral earnings
   },
   usedReferral: {
     type: String,

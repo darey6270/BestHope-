@@ -1,6 +1,5 @@
 const RandomModel = require('../models/randomModel');
 const Withdrawal=require('../models/withdrawalModel'); 
-const {updateWithdrawalStatus,autoAppoveWithdrawal} = require("../controllers/withdrawController");
 const SelectedUser=require('../models/selectedUserModel');
 const asyncHandler = require('express-async-handler');
 const User=require('../models/userModel');

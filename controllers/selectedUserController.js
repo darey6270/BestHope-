@@ -1,3 +1,4 @@
+const asyncHandler = require("express-async-handler");
 const express = require("express");
 const router = express.Router();
 const Withdrawal = require("../models/withdrawalModel");
@@ -160,6 +161,11 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const resetSelectedUser = asyncHandler(async (req, res) => {
+  await SelectedUser.deleteMany({});
+  res.status(200).json({ message: "All SelectedUsers have been reset" });
+});
+
 module.exports = {
   createUser,
   getUsers,
@@ -168,4 +174,5 @@ module.exports = {
   deleteUser,
   createUsersAndApproveWithdrawals,
   paidUser,
+  resetSelectedUser,
 };

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Deposit = require('../models/depositModel');
 const User = require('../models/userModel');
+const Referral  = require('../models/referralModel');
 const dotenv = require("dotenv").config();
 const cloudinary = require('../utils/cloudinary'); // Import Cloudinary configuration
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -339,36 +340,101 @@ router.put('/approveuserajo/:id', async (req, res) => {
 
   router.put('/approveregfee/:id', async (req, res) => {
     try {
-      const id = req.params.id; // Extract userId from the request parameters
-      const { userId} = req.body;
-      
-
+      const id = req.params.id; // Extract deposit ID
+      const { userId } = req.body;
+  
+      // Validate and fetch user
       const user = await User.findById(userId);
       if (!user) return res.status(404).json({ message: 'User not found' });
-
-      // Update fields if provided in the request body
-
-      // Update the deposit using userId and currentPeriod
+  
+      // Check if referring user exists
+      const referringUser = await User.findOne({ referral: user.usedReferral });
+      if (referringUser) {
+        // Fetch or create referral data
+        let existingReferral = await Referral.findOne({ userId: referringUser._id });
+        const amountPerReferral = 500; // Constant amount per referral
+  
+        if (existingReferral) {
+          // Update referral stats
+          const updatedReferralledCount = existingReferral.referralledCount + 1;
+          const newTotal = updatedReferralledCount * amountPerReferral;
+  
+          console.log(`Updating Referral - New Count: ${updatedReferralledCount}, New Total: ${newTotal}`);
+  
+          existingReferral = await Referral.findByIdAndUpdate(
+            existingReferral._id,
+            { referralledCount: updatedReferralledCount, amount: amountPerReferral, total: newTotal },
+            { new: true }
+          );
+  
+          // Update referring user's referral balance
+          const referringUserDoc = await User.findById(referringUser._id);
+          if (referringUserDoc) {
+            referringUserDoc.referralBalance = newTotal;
+            const savedUser = await referringUserDoc.save();
+            console.log(`Updated User Referral Balance: ${savedUser.referralBalance}`);
+          } else {
+            console.error('Referring user not found.');
+          }
+        } else {
+          // Create new referral data
+          const initialReferralledCount = 1;
+          const initialTotal = initialReferralledCount * amountPerReferral;
+  
+          console.log(`Creating New Referral - Count: ${initialReferralledCount}, Total: ${initialTotal}`);
+  
+          existingReferral = await Referral.create({
+            userId: referringUser._id,
+            referralledCount: initialReferralledCount,
+            amount: amountPerReferral,
+            total: initialTotal,
+          });
+  
+          // Update referring user's referral balance
+          const referringUserDoc = await User.findById(referringUser._id);
+          if (referringUserDoc) {
+            referringUserDoc.referralBalance = initialTotal;
+            const savedUser = await referringUserDoc.save();
+            console.log(`Updated User Referral Balance: ${savedUser.referralBalance}`);
+          } else {
+            console.error('Referring user not found.');
+          }
+        }
+      } else {
+        return res.status(400).json({ message: 'Invalid referral code' });
+      }
+  
+      // Approve the deposit
       const updatedDeposit = await Deposit.findOneAndUpdate(
-        { _id: id},
+        { _id: id },
         { status: 'approved' },
-        { new: true } // Return the updated document
+        { new: true }
       );
   
       if (!updatedDeposit) {
         return res.status(404).json({ error: 'Deposit not found for the given user and period.' });
       }
-
-       user.status = "approved";
-
-      const updatedUser = await user.save();
-      console.log(`it reached approve reg fee ${JSON.stringify(updatedUser)}`);
   
-      res.status(200).json({ message: 'Deposit receipt approved successfully', deposit: updatedDeposit });
+      // Update user status
+      user.status = 'approved';
+      const updatedUser = await user.save(); // Initialize `updatedUser` properly here
+  
+      console.log(`Approved Registration Fee for User: ${JSON.stringify(updatedUser)}`);
+  
+      res.status(200).json({
+        message: 'Deposit receipt approved successfully',
+        deposit: updatedDeposit,
+      });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to approve user Deposit receipt', details: error.message });
+      console.error('Error approving registration fee:', error);
+      res.status(500).json({
+        error: 'Failed to approve user deposit receipt',
+        details: error.message,
+      });
     }
   });
+  
+  
 
   router.put('/rejectuserajo/:id', async (req, res) => {
     try {

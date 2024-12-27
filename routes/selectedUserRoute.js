@@ -7,6 +7,7 @@ const {
   updateUser,
   deleteUser,
   paidUser,
+  resetSelectedUser
 } = require('../controllers/selectedUserController');
 
 // Create a new user
@@ -23,6 +24,9 @@ router.put('/:id', updateUser);
 
 // Delete a user by ID
 router.delete('/:id', deleteUser);
+
+// Delete a user by ID
+router.delete('/', resetSelectedUser);
 
 router.put('/paidUser/:id',paidUser);
 

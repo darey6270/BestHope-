@@ -147,10 +147,11 @@ router.get("/getSelectedReferralWithdrawals", async (req, res) => {
       console.log("No selected referrals found");
       return res.status(200).json({ message: "No SelectedReferralUsers found", withdrawals: [] });
     }
-    console.log("It reaches the selected referral");
 
     // Extract withdrawalIds
     const withdrawalIds = selectedReferralUsers.map((user) => user.withdrawalId);
+    
+    console.log(withdrawalIds);
 
     // Fetch all Withdrawals that match the withdrawalIds
     const withdrawals = await Withdrawal.find({ _id: { $in: withdrawalIds } });
@@ -430,6 +431,11 @@ router.put("/uploadReceipt/normal/:id",upload.single("image"), async (req, res) 
 
     if (image !== undefined) withdrawal.image = image;
         withdrawal.normalStatus="paid";
+    
+        await User.updateOne(
+          { _id: withdrawal.userId },
+          { isSelectedWithdraw: false,withdrawalId:"" }
+        );    
 
     const updatedWithdrawal = await withdrawal.save();
     res.status(200).json(updatedWithdrawal);
