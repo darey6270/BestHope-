@@ -1,4 +1,5 @@
 const Config = require("../models/Config");
+const userModel = require("../models/userModel");
 
 // Get all configurations
 exports.getAllConfigs = async (req, res) => {
@@ -32,7 +33,21 @@ exports.upsertConfig = async (req, res) => {
       { value, updatedAt: new Date() },
       { upsert: true, new: true }
     );
-    res.status(200).json(updatedConfig);
+
+    const updateResult=await userModel.updateMany(
+        {},
+        { userStatus:"unpaid",isSelectedWithdraw: false, withdrawalId: "", currentPeriod: "",ajoStatus:"pending",balance:0}
+      );
+
+      // Log the update result for debugging/verification
+      console.log("User model update result:", updateResult);
+    
+
+     // Optionally, you can include the update result in the response
+     res.status(200).json({
+      updatedConfig,
+      userUpdateResult: updateResult, // Add it to the response
+    });
   } catch (error) {
     res.status(500).json({ message: "Failed to save configuration", error });
   }

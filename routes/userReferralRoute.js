@@ -15,7 +15,8 @@ router.get("/referral/:referral", getUsersByReferral); // Get users by referral
 router.post("/", createUserReferral); // Create a new user referral
 router.put("/:id", updateUserReferral); // Update a user referral
 router.delete("/:id", deleteUserReferral); // Delete a user referral
-router.get("/reset", resetUserReferrals); // Reset referrals for a user
+// router.delete("/referrals/all", resetUserReferrals); // Delete all referrals
+
 
 
 module.exports = router;

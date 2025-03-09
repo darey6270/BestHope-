@@ -31,8 +31,6 @@ const userSchema = mongoose.Schema(
     referral: {
       type: String,
       required: [false, "Please add a referral id"],
-      minLength: [11, "Referral must be up to 11 characters"],
-      unique: true,
     },
     email: {
       type: String,
@@ -89,30 +87,21 @@ const userSchema = mongoose.Schema(
   usedReferral: {
     type: String,
     required: false,
-    minLength: [11, "Referral must be up to 11 characters"],
-    unique: true,
-},
+    trim: true,
+  },
 isSelectedWithdraw: { type: Boolean, default: false },
-withdrawId: { type: String, default: "0" },
-currentPeriod: { type: String }, // e.g., "March 2024"
+withdrawalId: { type: String, default: "0" },
+currentPeriod: { type: String }, // e.g., "March 2024"  
+ajoStatus: { 
+  type: String,
+  enum: ["pending", "approved", "declined","seen"],
+  default: "pending",
+  trim: true, },
 },
 {
   timestamps: true,
 } 
 );
-
-// Encrypt password before saving to DB
-// userSchema.pre("save", async function (next) {
-//   if (!this.isModified("password")) {
-//     return next();
-//   }
-
-//   // Hash password
-//   // const salt = await bcrypt.genSalt(10);
-//   const hashedPassword = await bcrypt.hash(this.password, 10);
-//   this.password = hashedPassword;
-//   next();
-// });
 
 const User = mongoose.model("User", userSchema);
 module.exports = User;

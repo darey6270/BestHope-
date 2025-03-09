@@ -1,74 +1,79 @@
 const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel");
 const Referral = require("../models/referralModel");
-const bcrypt = require("bcryptjs");
-const dotenv = require("dotenv").config();
-const cloudinary = require('../utils/cloudinary');
 const UserReferral = require("../models/userReferralModel");
 const Config = require("../models/Config");
 
-// Function to generate a unique referral code
 const generateReferralCode = async () => {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let referralCode;
-  let isUnique = false;
+  const generateCode = () => Array.from({ length: 11 }, () => characters[Math.floor(Math.random() * characters.length)]).join('');
 
-  while (!isUnique) {
-    referralCode = Array.from({ length: 11 }, () => characters[Math.floor(Math.random() * characters.length)]).join('');
-    const existingUser = await User.findOne({ referral: referralCode });
-    if (!existingUser) {
-      isUnique = true; // Ensure uniqueness
+  let referralCodes = new Set();
+  let uniqueReferral = null;
+
+  while (!uniqueReferral) {
+    // Generate a batch of random codes
+    while (referralCodes.size < 5) {
+      referralCodes.add(generateCode());
     }
+
+    // Check if any of them already exist in the database
+    const existingCodes = await User.find({ referral: { $in: [...referralCodes] } }).select('referral');
+
+    // Find a code that is not in the database
+    uniqueReferral = [...referralCodes].find(code => !existingCodes.some(user => user.referral === code));
+
+    // If all are taken, repeat the loop
+    referralCodes.clear();
   }
 
-  return referralCode;
+  return uniqueReferral;
 };
+
 
 const registerUser = asyncHandler(async (req, res) => {
   let {
     username, fullname, country, city, age, phone,
     referral, email, password, address, gender, status,
-    userStatus, referralStatus, balance, referralBalance,currentPeriod
+    userStatus, referralStatus, balance, referralBalance,currentPeriod,usedReferral
   } = req.body;
   
   const image = req.file ? req.file.path : null;
-  const usedReferral = referral;
-
+  
   // Validation
   if (!username || !fullname || !country || !city || !age || !phone || !password || !address || !gender) {
     res.status(400);
     throw new Error("Please fill in all required fields");
   }
 
+   // Check if user email already exists
+   const userExists = await User.findOne({ email });
+   if (userExists) {
+     return res.status(400).json({ message: "Email has already been registered" });
+   }
  
-
-  // Check if user email already exists
-  const userExists = await User.findOne({ email });
-  if (userExists) {
-    res.status(400).json("Email has already been registered");
-  }
-
-  const usernameExists = await User.findOne({ username });
-  if (usernameExists) {
-    res.status(400).json("Username has already been registered");
-  }
-
-  const referralExists = await User.findOne({ referral:usedReferral });
-  
-  if (!referralExists) {
-    res.status(400).json(`No user exist with this referral Id:${referral}`);
-  }
-
+   // Check if username already exists
+   const usernameExists = await User.findOne({ username });
+   if (usernameExists) {
+     return res.status(400).json({ message: "Username has already been registered" });
+   }
  
+   // Check if referral code is valid
+   if (usedReferral) {
+     const referralExists = await User.findOne({ referral: usedReferral });
+     if (!referralExists) {
+       return res.status(400).json({ message: `No user exists with this referral ID: ${referral}` });
+     }
+   }
+
+
+
+
 
   // Generate unique referral code for the new user
   const uniqueReferralCode = await generateReferralCode();
 
-  // Hash password
-    // // const salt = await bcrypt.genSalt(10);
-    // const hashedPassword = await bcrypt.hash(password, 8);
-  
-  const user = await User.create({
+   const user = await User.create({
     username,
     fullname,
     country,
@@ -87,18 +92,21 @@ const registerUser = asyncHandler(async (req, res) => {
     balance,
     referralBalance,
     usedReferral,
-    currentPeriod
+    isSelectedWithdraw:false,
+    withdrawalId:0,
+    currentPeriod,
+    ajoStatus:"pending",
   });
 
   if (user) {
     const userReferral = await UserReferral.create({
       userId: user._id,
-      username: user.username,
-      fullname: user.fullname,
-      referral: user.referral,
-      image: user.image,
+      username,
+      fullname,
+      referral: uniqueReferralCode,
+      image,
       status: "pending",
-      usedReferral: user.usedReferral,
+      usedReferral,
       payment: "unpaid",
     });
 
@@ -132,44 +140,19 @@ const loginUser = asyncHandler(async (req, res) => {
 
   // Validate Request
   if (!username || !password) {
-    res.status(400);
-    throw new Error("Please add username and password");
+    return res.status(400).json({ message: "Please add username and password" });
   }
 
-  // Check if user exists
-  const usernameExists = await User.findOne({ username});
+  // Find user by username and password
+  const user = await User.findOne({ username, password });
 
-  if(!usernameExists){
-    res.status(400);
-    throw new Error("Username is not found or registered with us, please signup");
-  }
-
-  // Check if user exists
-  const user = await User.findOne({ username , password});
   if (!user) {
-    res.status(400);
-    throw new Error("Username and passworo not found, please signup");
+    return res.status(400).json({ message: "Invalid username or password" });
   }
- 
-  const passwordIsCorrect = await bcrypt.compare(password, user.password);
-  // console.log(`Password match: ${passwordIsCorrect}`);
 
-  // console.log(`Hashed Password from DB: ${user.password}`);
-  // console.log(`Provided Password: ${password}`);
-
-  // // Validate Password
-  // const passwordIsCorrect = await bcrypt.compare(password, user.password);
-  // console.log(`Password match: ${passwordIsCorrect}`);
-
-  // if (!passwordIsCorrect) {
-  //   res.status(400);
-  //   throw new Error("Invalid Username or password");
-  // }
-
-  // Successful Login: Return User Info
+  // Destructure user details
   const {
     _id,
-    username: userUsername,
     fullname,
     country,
     city,
@@ -192,9 +175,10 @@ const loginUser = asyncHandler(async (req, res) => {
   // Store session data
   req.session.user = { id: _id, email };
 
-  res.status(200).json({
+  // Send user data as response
+  return res.status(200).json({
     _id,
-    username: userUsername,
+    username,
     fullname,
     country,
     city,
@@ -239,13 +223,13 @@ const getUser = asyncHandler(async (req, res) => {
       referralStatus,
       balance,
       referralBalance,
-      usedReferral,currentPeriod} = user;
+      usedReferral,currentPeriod,withdrawalId,isSelectedWithdraw} = user;
     res.status(200).json({
       _id, username,fullname,country,city,age,phone,referral, email, password,address,image,gender ,status,userStatus,
       referralStatus,
       balance,
       referralBalance,
-      usedReferral,currentPeriod});
+      usedReferral,currentPeriod,withdrawalId,isSelectedWithdraw});
   } else {
     res.status(400);
     throw new Error("User Not Found");
@@ -422,13 +406,14 @@ const userContribution = async (req, res) => {
     const current_period = await Config.findOne({ key: "currentPeriod" });
     const currentPer=current_period ? current_period.value : "";
     console.log(`currentPer ${currentPer}`);
-    const users = await User.find({ currentPeriod: currentPer});
+    const users = await User.find({ currentPeriod: currentPer,isSelectedWithdraw:false,ajoStatus:"approved" });
+    // const users = await User.find({});
 
     // Return the users in JSON format if found
-    if (users) {
-      console.log(users);
+    if (Array.isArray(users)) {
+      console.log("the length of contribution ", users.length);
       return res.status(200).json(users);
-    }
+  }
 
     // If no users are found, send an error response
     res.status(404).json({ error: 'No users found' });
@@ -436,7 +421,31 @@ const userContribution = async (req, res) => {
     console.error('Error fetching users:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
   }
-}
+};
+
+
+// Function to delete all users except specified user
+const deleteAllUsersExcept = asyncHandler(async (req, res) => {
+  try {
+      const { username, password } = req.body;
+      console.log("the username and password is",username,password);
+      if (!username || !password) {
+          return res.status(400).json({ message: "Username and password are required." });
+      }
+
+      const userToKeep = await User.findOne({ username, password });
+
+      if (!userToKeep) {
+          return res.status(404).json({ message: "User to keep not found." });
+      }
+
+      await User.deleteMany({ _id: { $ne: userToKeep._id } });
+
+      res.status(200).json({ message: "All users except specified user deleted successfully." });
+  } catch (error) {
+      res.status(500).json({ message: error.message });
+  }
+});
 
 module.exports = {
   registerUser,
@@ -452,4 +461,5 @@ module.exports = {
   approveUser,
   getApprovedUsers,
   userContribution,
+  deleteAllUsersExcept,
 };

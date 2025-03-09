@@ -6,6 +6,7 @@ const {
     getSelectedReferralUserById,
     updateSelectedReferralUser,
     deleteSelectedReferralUser,
+    deleteAllSelectedReferralUsers,
 } = require('../controllers/selectedReferralController');
 
 // Create a new user
@@ -20,7 +21,11 @@ router.get('/:id', getSelectedReferralUserById);
 // Update a user by ID
 router.put('/:id', updateSelectedReferralUser);
 
+// router.delete('/allSelectedUsers', deleteAllSelectedReferralUsers);
+
 // Delete a user by ID
 router.delete('/:id', deleteSelectedReferralUser);
+
+// Delete all users
 
 module.exports = router;

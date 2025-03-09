@@ -86,10 +86,24 @@ const paidUser = async (req, res) => {
   }
 };
 
+
+// DELETE: Delete all UnpaidSelectedUser documents
+const deleteAllUnpaidSelectedUsers = async (req, res) => {
+  try {
+    await UnpaidSelectedUser.deleteMany({});
+    res.status(200).json({ message: "All UnpaidSelectedUsers deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
 module.exports = {
   createPaid,
   getUsers,
   updateUser,
   deleteUser,
   paidUser,
+  deleteAllUnpaidSelectedUsers,
 };

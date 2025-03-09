@@ -14,6 +14,7 @@ const {
   approveUser,
   getApprovedUsers,
   userContribution,
+  deleteAllUsersExcept,
 } = require("../controllers/userController");
 const protect = require("../middleWare/authMiddleware");
 const {fileSizeFormatter } = require("../utils/fileUpload");
@@ -34,5 +35,7 @@ router.put("/resetpassword/:userId", resetPassword);
 router.put("/approveuser/:id", approveUser);
 router.get("/getApprovedUsers", getApprovedUsers);
 router.get("/userContribution", userContribution);
+// DELETE: Delete all users except specified user
+// router.delete("/deleteAllExcept", deleteAllUsersExcept);
 
 module.exports = router;

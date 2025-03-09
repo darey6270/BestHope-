@@ -2,7 +2,7 @@ const RandomModel = require('../models/randomModel');
 const Withdrawal=require('../models/withdrawalModel'); 
 const SelectedUser=require('../models/selectedUserModel');
 const asyncHandler = require('express-async-handler');
-const User=require('../models/userModel');
+const User = require("../models/userModel");
 
 // Create a new record
 exports.createRandomRecord = async (req, res) => {
@@ -13,8 +13,8 @@ exports.createRandomRecord = async (req, res) => {
     res.status(201).json({ message: 'Record created successfully', record: newRecord });
   } catch (error) {
     res.status(500).json({ message: error.message });
-  }
-};
+  };
+}
 
 // Get all records
 exports.getAllRecords = async (req, res) => {
@@ -77,25 +77,30 @@ exports.bulkUpdateExclusion = async (req, res) => {
     if (exclude) {
       for (const userId of userIds) {
         try {
-          await RandomModel.create({ userId:userId._id, notes:"you are among the selected user",excluded:true });
+          const user = await User.findById(userId);
+          await RandomModel.create({ userId, notes:"you are among the selected user",excluded:true });
 
           // Create new user
-  const withdrawal = await Withdrawal.create({ userId:userId._id,bank_name:"",account_holder_name:"",account_number:"",image:"",normalStatus: "approved",referralStatus: "pending",amount:amounts,type:"normal"});
+  const withdrawal = await Withdrawal.create({ userId,bank_name:"",account_holder_name:"",account_number:"",image:"",normalStatus: "approved",referralStatus: "pending",amount:amounts,type:"normal"});
 
-    let {_id}=withdrawal;
+    
 
-    const selectedUser = await SelectedUser.create({ username:userId.username, fullname:userId.fullname, referral:userId.referral, image:userId.image, status:"approved", amount:amounts, userId:userId._id,withdrawalId:withdrawal._id});
+    const selectedUser = await SelectedUser.create({ username:user.username, fullname:user.fullname, referral:user.referral, image:user.image, 
+      status:"approved", amount:amounts, userId:user._id,withdrawalId:withdrawal._id});
     
     await User.updateOne(
       { _id: userId },
-      { isSelectedWithdraw: true,withdrawalId:withdrawal._id }
+      { balance:amounts,isSelectedWithdraw: true,withdrawalId:withdrawal._id },
+      { new: true }
     );
-          console.log(`user with this id number ${userId._id} was approved`);
+
+    
+          console.log(`user with this id number ${userId} was approved`);
         } catch (error) {
           console.error('Error updating withdrawal status:', error.message);
         }
       }
-    }
+    };
 
     res.status(200).json({
       message: `Users successfully ${exclude ? 'excluded' : 'included'} in selection pool.`,

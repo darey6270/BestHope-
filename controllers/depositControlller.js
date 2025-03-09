@@ -11,6 +11,15 @@ const uploadMiddleware = require("../utils/uploadMiddleware");
 const upload = uploadMiddleware("uploads");
 const Config=require("../models/Config");
 
+  // DELETE: Delete all deposits
+  // router.delete('/all', async (req, res) => {
+  //   try {
+  //       await Deposit.deleteMany({});
+  //       res.status(200).json({ message: "All deposits deleted successfully." });
+  //   } catch (error) {
+  //       res.status(500).json({ message: error.message });
+  //   }
+  // });
 
 // PATCH: Update the status of a deposit by ID
 router.patch('/:id/status', async (req, res) => {
@@ -116,6 +125,11 @@ router.post('/',upload.single('image'), async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
+        // Update fields if provided in the request body
+        if (currentPeriod !== undefined) user.currentPeriod = currentPeriod;
+        
+        const updatedUser = await user.save();
+
         // Create new deposit
         const deposit = new Deposit({
             userId,
@@ -156,8 +170,8 @@ router.post('/ajo',upload.single('image'), async (req, res) => {
             notes:"",
         });
 
-        // if (currentPeriod !== undefined) user.currentPeriod = currentPeriod;
-        // const updatedUser = await user.save();
+         user.currentPeriod = currentPeriod;
+        const updatedUser = await user.save();
 
         const savedDeposit = await deposit.save();
         res.status(201).json(savedDeposit);
@@ -176,6 +190,26 @@ router.get('/', async (req, res) => {
     }
 });
 
+router.get("/search/:username", async (req, res) => {
+  try {
+      const { username } = req.params;
+
+      // Find the user by username
+      const user = await User.findOne({ username });
+      if (!user) {
+          return res.status(404).json({ message: "User not found" });
+      }
+
+      // Get deposits linked to the user
+      const deposits = await Deposit.find({ userId: user._id }).populate('userId', 'username email');
+
+      res.status(200).json(deposits);
+  } catch (error) {
+      res.status(500).json({ message: error.message });
+  }
+});
+
+
 router.get('/getusercontribution/:id', async (req, res) => { 
     try {
         const _id = req.params.id;
@@ -187,7 +221,7 @@ router.get('/getusercontribution/:id', async (req, res) => {
             return res.status(400).json({ error: 'Current period is not defined in the configuration.' });
         }
 
-        const deposits = await Deposit.find({ _id:_id, currentPeriod: currentPeriod }).populate('userId', 'username email image referral');
+        const deposits = await Deposit.find({ _id:_id, currentPeriod: currentPeriod}).populate('userId', 'username email image referral');
 
         res.status(200).json(deposits);
     } catch (error) {
@@ -207,6 +241,19 @@ router.get('/getregisteruser/:id', async (req, res) => {
     }
 });
 
+router.get('/info', async (req, res) => { 
+  try {
+      const {userId,currentPeriod}=req.body;
+
+      const deposits = await Deposit.find({ userId, currentPeriod});
+
+      res.status(200).json(deposits);
+  } catch (error) {
+      res.status(500).json({ message: error.message });
+  }
+});
+
+
 
 router.get('/getusercontribution', async (req, res) => { 
     try {
@@ -217,7 +264,7 @@ router.get('/getusercontribution', async (req, res) => {
             return res.status(400).json({ error: 'Current period is not defined in the configuration.' });
         }
 
-        const deposits = await Deposit.find({ currentPeriod: currentPeriod }).populate('userId', 'username email image referral');
+        const deposits = await Deposit.find({ currentPeriod: currentPeriod}).populate('userId', 'username email image referral');
 
         res.status(200).json(deposits);
     } catch (error) {
@@ -319,10 +366,17 @@ router.put('/approveuserajo/:id', async (req, res) => {
       if (!updatedDeposit) {
         return res.status(404).json({ error: 'Deposit not found for the given user and period.' });
       }
-  
+     
+      // Update the deposit using userId and currentPeriod
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: userId},
+        { currentPeriod:currentPeriod,ajoStatus: 'approved' },
+        { new: true } 
+      );
       // Update the user's currentPeriod
-      user.currentPeriod = currentPeriod;
-      const updatedUser = await user.save(); // Save the user instance
+      // user.currentPeriod = currentPeriod;
+      // user.ajoStatus = "approved";
+      // const updatedUser = await user.save(); // Save the user instance
   
       console.log('Updated User:', updatedUser);
   
@@ -499,6 +553,7 @@ router.put('/approveuserajo/:id', async (req, res) => {
     }
   });
   
+
 
 
 module.exports = router;

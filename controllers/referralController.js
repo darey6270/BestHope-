@@ -92,3 +92,13 @@ exports.getUserReferrals = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// DELETE all referrals
+exports.deleteAllReferrals = async (req, res) => {
+  try {
+      await Referral.deleteMany({});
+      res.status(200).json({ message: "All referrals deleted successfully." });
+  } catch (error) {
+      res.status(500).json({ message: error.message });
+  }
+};

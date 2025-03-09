@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const randomController = require('../controllers/randomController');
 
+// router.delete('/allRandom', randomController.resetRandomSelectedUser);
 // Route to create a new record
 router.post('/create', randomController.createRandomRecord);
 
@@ -19,6 +20,5 @@ router.delete('/:userId', randomController.deleteRecord);
 
 router.get('/unselected', randomController.getselectedUsers);
 
-router.get('/reset', randomController.resetRandomSelectedUser);
 
 module.exports = router;

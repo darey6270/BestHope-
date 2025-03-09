@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const referralController = require('../controllers/referralController');
 
+// router.delete('/allReferral',referralController.deleteAllReferrals);
+
 // CREATE a new referral
 router.post('/', referralController.createReferral);
 
@@ -19,5 +21,7 @@ router.delete('/:id', referralController.deleteReferral);
 
 // New route to get referrals for a specific user
 router.get('/user/:userId',referralController.getUserReferrals);
+
+// delete all referrals
 
 module.exports = router;

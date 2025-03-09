@@ -95,10 +95,21 @@ const deleteSelectedReferralUser = async (req, res) => {
   }
 };
 
+// DELETE: Delete all SelectedReferralUsers
+const deleteAllSelectedReferralUsers = async (req, res) => {
+  try {
+    await SelectedUser.deleteMany({});
+    res.status(200).json({ message: "All SelectedReferralUsers deleted successfully." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createSelectedReferralUser,
   getSelectedReferralUsers,
   getSelectedReferralUserById,
   updateSelectedReferralUser,
   deleteSelectedReferralUser,
+  deleteAllSelectedReferralUsers
 };

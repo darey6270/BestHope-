@@ -30,9 +30,7 @@ const userSchema = mongoose.Schema(
       },
       usedReferral: {
         type: String,
-        required: [true, "Please add a referral id"],
-        minLength: [11, "Referral must be up to 11 characters"],
-        unique: true,
+        required: [false, "Please add a referral id"],
     },
     payment: {
       type: String,

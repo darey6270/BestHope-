@@ -434,8 +434,11 @@ router.put("/uploadReceipt/normal/:id",upload.single("image"), async (req, res) 
     
         await User.updateOne(
           { _id: withdrawal.userId },
-          { isSelectedWithdraw: false,withdrawalId:"" }
-        );    
+          { userStatus:"paid",isSelectedWithdraw:true,withdrawalId:withdrawal._id },
+          { new: true }
+        );
+        
+
 
     const updatedWithdrawal = await withdrawal.save();
     res.status(200).json(updatedWithdrawal);
@@ -470,6 +473,85 @@ router.put("/update/accountdetails/:id", async (req, res) => {
   }
 });
 
+router.get("/normal/search/:username", async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const withdrawals = await Withdrawal.find({ userId: user._id, type: 'normal' }).populate("userId","username email referral image");
+
+    res.status(200).json(withdrawals);
+  } catch (error) {
+    console.error("Error searching withdrawals:", error); // Log the error
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.get("/referral/search/:username", async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const withdrawals = await Withdrawal.find({ userId: user._id, type: 'referral' }).populate("userId","username email referral image");
+
+    res.status(200).json(withdrawals);
+  } catch (error) {
+    console.error("Error searching withdrawals:", error); // Log the error
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.put("/update/withdraw/accountdetails/:id", async (req, res) => {
+  try {
+    const {
+      bank_name,
+      account_holder_name,
+      account_number,
+    } = req.body;
+
+    const withdrawal = await Withdrawal.findById(req.params.id);
+    if (!withdrawal) {
+      return res.status(404).json({ message: "Withdrawal not found." });
+    }
+
+    if (bank_name !== undefined) withdrawal.bank_name = bank_name;
+    if (account_holder_name !== undefined)
+      withdrawal.account_holder_name = account_holder_name;
+    if (account_number !== undefined) withdrawal.account_number = account_number;
+  
+
+    const updatedWithdrawal = await withdrawal.save();
+    await User.updateOne(
+      { _id: withdrawal.userId },
+      { userStatus:"paid",isSelectedWithdraw:false,withdrawalId:withdrawal._id,balance:0 },
+      { new: true }
+    );
+
+    res.status(200).json(updatedWithdrawal);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+// DELETE: Delete all withdrawals
+// router.delete("/all", async (req, res) => {
+//   try {
+//       await Withdrawal.deleteMany({});
+//       res.status(200).json({message: "All withdrawals deleted successfully."});
+//   } catch (error) {
+//       res.status(500).json({message: error.message});
+//   }
+// });
+
 // DELETE: Delete a withdrawal by ID
 router.delete("/:id", async (req, res) => {
   try {
@@ -482,5 +564,9 @@ router.delete("/:id", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+
+
+
 
 module.exports = router;
