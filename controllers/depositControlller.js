@@ -245,7 +245,7 @@ router.get('/info', async (req, res) => {
   try {
       const {userId,currentPeriod}=req.body;
 
-      const deposits = await Deposit.find({ userId, currentPeriod});
+      const deposits = await Deposit.findOne({ userId, currentPeriod});
 
       res.status(200).json(deposits);
   } catch (error) {
@@ -498,13 +498,11 @@ router.put('/approveuserajo/:id', async (req, res) => {
       // Retrieve the current period from the configuration
       const currentPeriodConfig = await Config.findOne({ key: "currentPeriod" });
       const currentPeriod = currentPeriodConfig.value;
-  
+
       if (!currentPeriod) {
         return res.status(400).json({ error: 'Current period is not defined in the configuration.' });
       }
-
       console.log(`the code reaches here`);
-  
       // Update the deposit using userId and currentPeriod
       const updatedDeposit = await Deposit.findOneAndUpdate(
         { _id: userId, currentPeriod: currentPeriodConfig.value },
@@ -552,7 +550,87 @@ router.put('/approveuserajo/:id', async (req, res) => {
       res.status(500).json({ error: 'Failed to approve user Deposit receipt', details: error.message });
     }
   });
+
+  router.get("/getdeposited/receipt/:id", async (req, res) => {  
+    try {
+        const userId = req.params.id;
+        const deposits = await Deposit.findOne({ userId , currentPeriod: "Reg Fee" });
+        res.status(200).json(deposits);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    } }
+  );
+
+  router.patch("/updateddeposited/receipt/:id",upload.single('image'), async (req, res) => {  
+    try {
+        const userId = req.params.id;
+        const updatedImage = req.file ? req.file.path : null;
+
+      const updatedDeposit = await Deposit.findOneAndUpdate(
+        { userId: userId, currentPeriod: "Reg Fee" },
+        { status: 'pending' ,image:updatedImage},
+        { new: true } // Return the updated document
+      );
   
+      if (!updatedDeposit) {
+        return res.status(404).json({ error: 'Deposit not found for the given' });
+      }else{
+        res.status(200).json({ message: 'Deposit receipt updated successfully', deposit: updatedDeposit });
+      }
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    } 
+  });
+
+  router.patch("/updateddepositedajo/receipt/:id",upload.single('image'), async (req, res) => {  
+    try {
+        const userId = req.params.id;
+        const updatedImage = req.file ? req.file.path : null;
+      
+        // Retrieve the current period from the configuration
+      const currentPeriodConfig = await Config.findOne({ key: "currentPeriod" });
+      const currentPeriod = currentPeriodConfig.value;
+
+      if (!currentPeriod) {
+        return res.status(400).json({ error: 'Current period is not defined in the configuration.' });
+      }
+               
+      const updatedDeposit = await Deposit.findOneAndUpdate(
+        { userId: userId, currentPeriod:currentPeriod },
+        { status: 'pending' ,image:updatedImage},
+        { new: true } // Return the updated document
+      );
+  
+      if (!updatedDeposit) {
+        return res.status(404).json({ error: 'Deposit not found for the given period' });
+      }else{
+        res.status(200).json({ message: 'Deposit receipt updated successfully', deposit: updatedDeposit });
+      }
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    } 
+  });
+
+  router.get("/getdepositedajo/receipt/:id", async (req, res) => {  
+       
+     // Retrieve the current period from the configuration
+     const currentPeriodConfig = await Config.findOne({ key: "currentPeriod" });
+     const currentPeriod = currentPeriodConfig.value;
+
+     if (!currentPeriod) {
+       return res.status(400).json({ error: 'Current period is not defined in the configuration.' });
+     }
+
+    try {
+        const userId = req.params.id;
+        const deposits = await Deposit.findOne({ userId , currentPeriod: currentPeriod});
+        res.status(200).json(deposits);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    } }
+  );
 
 
 

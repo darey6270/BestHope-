@@ -123,6 +123,16 @@ const registerUser = asyncHandler(async (req, res) => {
       address: user.address,
       image: user.image,
       gender: user.gender,
+      status: user.status,
+      userStatus:user.userStatus,
+      referralStatus:user.referralStatus,
+      balance: user.balance,
+      referralBalance:user.referralBalance,
+      usedReferral:user.usedReferral,
+      isSelectedWithdraw:user.isSelectedWithdraw,
+      withdrawalId:user.withdrawalId,
+      currentPeriod:user,
+      ajoStatus:user.ajoStatus,
     });
   } else {
     throw new Error("Invalid user data");
@@ -323,68 +333,47 @@ const getApprovedUsers = asyncHandler(async (req, res) => {
 
 
 const changePassword = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
-  const { oldPassword, password } = req.body;
 
-  if (!user) {
-    res.status(400);
-    throw new Error("User not found, please signup");
-  }
-  //Validate
-  if (!oldPassword || !password) {
-    res.status(400);
-    throw new Error("Please add old and new password");
-  }
 
-  // check if old password matches password in DB
-  // const passwordIsCorrect = await bcrypt.compare(oldPassword, user.password);
-
-  // Save new password
+  const user = await User.findOne({email:req.params.id});
+  
   if (user) {
-    user.password = password;
-    await user.save();
-    res.status(200).send("Password change successful");
-  } else {
-    res.status(400);
-    throw new Error("Old password is incorrect");
+    res.status(200).json(user);
+  }else{
+    res.status(400).json({ message: "Email is not found, please reset password" });
   }
 });
 
 const forgotPassword = asyncHandler(async (req, res) => {
-  const { email} = req.params;
-  const user = await User.findOne({ email });
-
-  if (!user) {
-    res.status(404);
-    throw new Error("User does not exist");
-  }
+  const { email } = req.params;
+ 
+  console.log(`Received email: ${email}`);
   
-  // Save new password
+  const user = await User.findOne({ email:req.params.email });
   if (user) {
-    user.password = req.body.password;
-    await user.save();
-    res.status(200).send("Password change successful");
-  } else {
-    res.status(400);
-    throw new Error("Old password is incorrect");
+    res.status(404).json({ message: "the email is found " });
+  }else{
+    res.status(200).json({ message: "Email is not found, please reset password" });
   }
 
 });
 
 // Reset Password
 const resetPassword = asyncHandler(async (req, res) => {
-  const { password } = req.body;
-  const {userId } = req.params;
-
-  
-
+  const { password,email} = req.body;
+  console.log(`Received password: ${password}, email: ${email}`);
   // Find user
-  const user = await User.findOne({ _id: userId });
-  user.password = password;
-  await user.save();
-  res.status(200).json({
-    message: "Password Reset Successful, Please Login",
-  });
+  const user = await User.findOne({ email });
+  if (user) {
+    user.password = password;
+    await user.save();
+    res.status(200).json({
+      message: "Password Reset Successful, Please Login",
+    });
+  }else{
+    res.status(200).json({ message: "Email is not found, please reset password" });
+  }
+
 });
 
 // Controller function to approve a pending user

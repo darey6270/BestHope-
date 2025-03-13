@@ -316,7 +316,7 @@ router.get("/normal", async (req, res) => {
   try {
     const type="normal";
     const normalStatus="approved";
-    const withdrawals = await Withdrawal.find({type,normalStatus}).populate("userId","username email referral image");
+    const withdrawals = await Withdrawal.find({type}).populate("userId","username email referral image");
     res.status(200).json(withdrawals);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -327,7 +327,7 @@ router.get("/referral", async (req, res) => {
   try {
     const referralStatus="approved";
     const type="referral";
-    const withdrawals = await Withdrawal.find({type,referralStatus}).populate("userId","username email referral image" );
+    const withdrawals = await Withdrawal.find({type}).populate("userId","username email referral image" );
     res.status(200).json(withdrawals);
   } catch (error) {
     res.status(500).json({ message: error.message });
