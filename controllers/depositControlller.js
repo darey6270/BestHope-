@@ -568,7 +568,7 @@ router.put('/approveuserajo/:id', async (req, res) => {
 
       const updatedDeposit = await Deposit.findOneAndUpdate(
         { userId: userId, currentPeriod: "Reg Fee" },
-        { status: 'pending' ,image:updatedImage},
+        {image:updatedImage},
         { new: true } // Return the updated document
       );
   
@@ -598,7 +598,7 @@ router.put('/approveuserajo/:id', async (req, res) => {
                
       const updatedDeposit = await Deposit.findOneAndUpdate(
         { userId: userId, currentPeriod:currentPeriod },
-        { status: 'pending' ,image:updatedImage},
+        {image:updatedImage},
         { new: true } // Return the updated document
       );
   
