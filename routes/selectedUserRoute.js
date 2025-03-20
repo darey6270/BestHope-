@@ -26,7 +26,7 @@ router.put('/:id', updateUser);
 router.delete('/:id', deleteUser);
 
 // Delete a
-// router.delete('/delete/all/user', resetSelectedUser);
+ router.delete('/delete/all', resetSelectedUser);
 
 router.put('/paidUser/:id',paidUser);
 
