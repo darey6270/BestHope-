@@ -338,9 +338,9 @@ router.get("/referral", async (req, res) => {
 router.get("/normal/:id", async (req, res) => {
   try {
     const userId = req.params.id;
-    const _id = req.params.id;
+    const normalStatus = "paid";
     const type="normal";
-    const withdrawal = await Withdrawal.find({ _id , type}).populate("userId","username email referral image");
+    const withdrawal = await Withdrawal.find({ userId ,normalStatus, type}).populate("userId","username email referral image");
 
     if (!withdrawal.length) {
       return res
@@ -365,7 +365,7 @@ router.get("/referral/:id", async (req, res) => {
     if (!withdrawal.length) {
       return res
         .status(404)
-        .json({ message: "No withdrawals  found for this user." });
+        .json({ message: "No referral withdrawals   found for this user." });
     }
 
     res.status(200).json(withdrawal);
