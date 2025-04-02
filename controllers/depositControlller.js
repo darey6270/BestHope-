@@ -10,16 +10,7 @@ const {fileSizeFormatter } = require("../utils/fileUpload");
 const uploadMiddleware = require("../utils/uploadMiddleware");
 const upload = uploadMiddleware("uploads");
 const Config=require("../models/Config");
-
-  // DELETE: Delete all deposits
-  // router.delete('/all', async (req, res) => {
-  //   try {
-  //       await Deposit.deleteMany({});
-  //       res.status(200).json({ message: "All deposits deleted successfully." });
-  //   } catch (error) {
-  //       res.status(500).json({ message: error.message });
-  //   }
-  // });
+const UserReferral = require("../models/userReferralModel");
 
 // PATCH: Update the status of a deposit by ID
 router.patch('/:id/status', async (req, res) => {
@@ -404,6 +395,18 @@ router.put('/approveuserajo/:id', async (req, res) => {
       // Check if referring user exists
       const referringUser = await User.findOne({ referral: user.usedReferral });
       if (referringUser) {
+        
+        const userReferral = await UserReferral.create({
+          userId: user._id,
+          username:user.username,
+          fullname:user.fullname,
+          referral: user.referral,
+          image:user.image,
+          status: "pending",
+          usedReferral:user.usedReferral,
+          payment: "unpaid",
+        });
+        
         // Fetch or create referral data
         let existingReferral = await Referral.findOne({ userId: referringUser._id });
         const amountPerReferral = 500; // Constant amount per referral

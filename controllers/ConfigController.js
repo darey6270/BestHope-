@@ -1,5 +1,6 @@
 const Config = require("../models/Config");
 const userModel = require("../models/userModel");
+const Random=require("../models/randomModel");
 
 // Get all configurations
 exports.getAllConfigs = async (req, res) => {
@@ -41,9 +42,8 @@ exports.upsertConfig = async (req, res) => {
 
       // Log the update result for debugging/verification
       console.log("User model update result:", updateResult);
-    
-
-     // Optionally, you can include the update result in the response
+      await Random.deleteMany({});
+      
      res.status(200).json({
       updatedConfig,
       userUpdateResult: updateResult, // Add it to the response

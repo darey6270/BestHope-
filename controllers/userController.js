@@ -99,17 +99,7 @@ const registerUser = asyncHandler(async (req, res) => {
   });
 
   if (user) {
-    const userReferral = await UserReferral.create({
-      userId: user._id,
-      username,
-      fullname,
-      referral: uniqueReferralCode,
-      image,
-      status: "pending",
-      usedReferral,
-      payment: "unpaid",
-    });
-
+    
     res.status(201).json({
       _id: user._id,
       username: user.username,
