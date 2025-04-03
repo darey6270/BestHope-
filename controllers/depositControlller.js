@@ -391,21 +391,32 @@ router.put('/approveuserajo/:id', async (req, res) => {
       // Validate and fetch user
       const user = await User.findById(userId);
       if (!user) return res.status(404).json({ message: 'User not found' });
-  
+      
+      const existingUserReferral2 = await UserReferral.findOne({ userId: user._id });
+      if (existingUserReferral2) 
+        return res.status(404).json({ message: 'already proceed' });
+
       // Check if referring user exists
       const referringUser = await User.findOne({ referral: user.usedReferral });
       if (referringUser) {
         
-        const userReferral = await UserReferral.create({
-          userId: user._id,
-          username:user.username,
-          fullname:user.fullname,
-          referral: user.referral,
-          image:user.image,
-          status: "pending",
-          usedReferral:user.usedReferral,
-          payment: "unpaid",
-        });
+        const existingUserReferral = await UserReferral.findOne({ userId: user._id });
+
+        if (!existingUserReferral) {
+          const userReferral = await UserReferral.create({
+            userId: user._id,
+            username: user.username,
+            fullname: user.fullname,
+            referral: user.referral,
+            image: user.image,
+            status: "pending",
+            usedReferral: user.usedReferral,
+            payment: "unpaid",
+          });
+        } else {
+          console.log(`UserReferral already exists for userId: ${user._id}`);
+        }
+
         
         // Fetch or create referral data
         let existingReferral = await Referral.findOne({ userId: referringUser._id });

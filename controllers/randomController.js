@@ -68,47 +68,78 @@ exports.selectRandomUser = async (req, res) => {
 
 // Bulk update exclusion status for multiple users
 exports.bulkUpdateExclusion = async (req, res) => {
-  const { userIds, exclude ,amounts } = req.body;
-
+  const { userIds, exclude, amounts } = req.body;
 
   try {
-
-    // Optionally update withdrawal status if exclude is true
     if (exclude) {
-      for (const userId of userIds) {
+      for (const [index, userId] of userIds.entries()) {
         try {
           const user = await User.findById(userId);
-          await RandomModel.create({ userId, notes:"you are among the selected user",excluded:true });
+          if (!user) {
+            console.log(`User not found: ${userId}`);
+            continue; // Skip this user if not found
+          }
 
-          // Create new user
-  const withdrawal = await Withdrawal.create({ userId,bank_name:"",account_holder_name:"",account_number:"",image:"",normalStatus: "approved",referralStatus: "pending",amount:amounts,type:"normal"});
+          // ✅ Ensure `RandomModel` does not create duplicates
+          await RandomModel.findOneAndUpdate(
+            { userId },
+            { notes: "You are among the selected users", excluded: true },
+            { upsert: true, new: true }
+          );
 
-    
+          // ✅ Ensure `Withdrawal` entry is unique for the user
+          let withdrawal = await Withdrawal.findOne({ userId, type: "normal" });
+          if (!withdrawal) {
+            withdrawal = await Withdrawal.create({
+              userId,
+              bank_name: "",
+              account_holder_name: "",
+              account_number: "",
+              image: "",
+              normalStatus: "approved",
+              referralStatus: "pending",
+              amount: amounts,
+              type: "normal",
+            });
+          }
 
-    const selectedUser = await SelectedUser.create({ username:user.username, fullname:user.fullname, referral:user.referral, image:user.image, 
-      status:"approved", amount:amounts, userId:user._id,withdrawalId:withdrawal._id});
-    
-    await User.updateOne(
-      { _id: userId },
-      { balance:amounts,isSelectedWithdraw: true,withdrawalId:withdrawal._id },
-      { new: true }
-    );
+          // ✅ Ensure `SelectedUser` entry is unique for the user
+          await SelectedUser.findOneAndUpdate(
+            { userId },
+            {
+              username: user.username,
+              fullname: user.fullname,
+              referral: user.referral,
+              image: user.image,
+              status: "approved",
+              amount: amounts,
+              withdrawalId: withdrawal._id,
+            },
+            { upsert: true, new: true }
+          );
 
-    
-          console.log(`user with this id number ${userId} was approved`);
+          // ✅ Update the user balance without duplicates
+          await User.findOneAndUpdate(
+            { _id: userId },
+            { balance: amounts, isSelectedWithdraw: true, withdrawalId: withdrawal._id },
+            { new: true }
+          );
+
+          console.log(`User with ID ${userId} was approved.`);
         } catch (error) {
-          console.error('Error updating withdrawal status:', error.message);
+          console.error(`Error processing user ${userId}:`, error.message);
         }
       }
-    };
+    }
 
     res.status(200).json({
-      message: `Users successfully ${exclude ? 'excluded' : 'included'} in selection pool.`,
+      message: `Users successfully ${exclude ? "excluded" : "included"} in selection pool.`,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // Delete a user's record from RandomModel
 exports.deleteRecord = async (req, res) => {

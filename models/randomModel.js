@@ -5,7 +5,6 @@ const randomSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    unique: true, // Ensures each user is only stored once in the RandomModel collection
   },
   selectedAt: {
     type: Date,
