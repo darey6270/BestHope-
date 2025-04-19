@@ -87,10 +87,8 @@ exports.bulkUpdateExclusion = async (req, res) => {
             { upsert: true, new: true }
           );
 
-          // ✅ Ensure `Withdrawal` entry is unique for the user
-          let withdrawal = await Withdrawal.findOne({ userId, type: "normal" });
-          if (!withdrawal) {
-            withdrawal = await Withdrawal.create({
+          
+          const  withdrawal = await Withdrawal.create({
               userId,
               bank_name: "",
               account_holder_name: "",
@@ -101,7 +99,10 @@ exports.bulkUpdateExclusion = async (req, res) => {
               amount: amounts,
               type: "normal",
             });
-          }
+
+          console.log("you were choose randomly for withdrawal",JSON.stringify(withdrawal));
+
+          
 
           // ✅ Ensure `SelectedUser` entry is unique for the user
           await SelectedUser.findOneAndUpdate(

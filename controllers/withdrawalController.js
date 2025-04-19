@@ -336,18 +336,15 @@ router.get("/referral", async (req, res) => {
 
 // READ: Get a single withdrawal by userId
 router.get("/normal/:id", async (req, res) => {
+  
+    console.log("normal id",req.params.id);
   try {
     const userId = req.params.id;
     const normalStatus = "paid";
     const type="normal";
-    const withdrawal = await Withdrawal.find({ userId ,normalStatus, type}).populate("userId","username email referral image");
+    const withdrawal = await Withdrawal.findById(req.params.id).populate("userId","username email referral image");
 
-    if (!withdrawal.length) {
-      return res
-        .status(404)
-        .json({ message: "No withdrawals found for this user." });
-    }
-
+  
     res.status(200).json(withdrawal);
   } catch (error) {
     res.status(500).json({ message: error.message });

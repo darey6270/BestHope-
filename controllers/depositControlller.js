@@ -580,16 +580,47 @@ router.put('/approveuserajo/:id', async (req, res) => {
         const userId = req.params.id;
         const updatedImage = req.file ? req.file.path : null;
 
-      const updatedDeposit = await Deposit.findOneAndUpdate(
-        { userId: userId, currentPeriod: "Reg Fee" },
-        {image:updatedImage},
+      let saveDeclinedDeposit="";
+       
+        const declinedReceipt = await Deposit.findOne({
+          userId: userId,
+          currentPeriod: "Reg Fee",
+        }).sort({ createdAt: -1 });
+        
+        if (declinedReceipt) {
+         // Create new deposit
+      const deposit = new Deposit({
+        userId:declinedReceipt.userId,
+        image:declinedReceipt.image,
+        status:"declined",
+        amount:declinedReceipt.amount,
+        currentPeriod:"Reg Fee",
+        notes:declinedReceipt.notes,
+    });
+      saveDeclinedDeposit = await deposit.save();
+
+      console.log("declined deposit save successfully",saveDeclinedDeposit);
+        } 
+
+        const updatedUser = await User.findOneAndUpdate(
+          { _id:userId},
+          {status:"pending"},
+          { new: true } // Return the updated document
+        );
+        
+        const updatedDeposit = await Deposit.findOneAndUpdate(
+        { userId: userId, currentPeriod: "Reg Fee"},
+        {image:updatedImage,status:"pending"},
         { new: true } // Return the updated document
       );
-  
+      if(updatedUser){
+        console.log("User detail",updatedUser);
+      }
+          
       if (!updatedDeposit) {
         return res.status(404).json({ error: 'Deposit not found for the given' });
       }else{
-        res.status(200).json({ message: 'Deposit receipt updated successfully', deposit: updatedDeposit });
+        res.status(200).json({ message: 'Deposit receipt updated successfully', deposit: updatedDeposit ,saveDeclinedDeposit});
       }
 
     } catch (error) {
@@ -605,21 +636,40 @@ router.put('/approveuserajo/:id', async (req, res) => {
         // Retrieve the current period from the configuration
       const currentPeriodConfig = await Config.findOne({ key: "currentPeriod" });
       const currentPeriod = currentPeriodConfig.value;
+      
+      let saveDeclinedDeposit="";
+      const declinedReceipt = await Deposit.findOne({
+          userId: userId,
+          currentPeriod
+        }).sort({ createdAt: -1 });
+        
+        if (declinedReceipt) {
+         // Create new deposit
+      const deposit = new Deposit({
+        userId:declinedReceipt.userId,
+        image:declinedReceipt.image,
+        status:declinedReceipt.status,
+        amount:declinedReceipt.amount,
+        currentPeriod:declinedReceipt.currentPeriod,
+        notes:declinedReceipt.notes,
+    });
+      saveDeclinedDeposit = await deposit.save();
+        }
 
       if (!currentPeriod) {
         return res.status(400).json({ error: 'Current period is not defined in the configuration.' });
       }
                
       const updatedDeposit = await Deposit.findOneAndUpdate(
-        { userId: userId, currentPeriod:currentPeriod },
-        {image:updatedImage},
+        { userId: userId, currentPeriod:currentPeriod,status:"declined"},
+        {image:updatedImage,status:"pending"},
         { new: true } // Return the updated document
       );
   
       if (!updatedDeposit) {
         return res.status(404).json({ error: 'Deposit not found for the given period' });
       }else{
-        res.status(200).json({ message: 'Deposit receipt updated successfully', deposit: updatedDeposit });
+        res.status(200).json({ message: 'Deposit receipt updated successfully', deposit: updatedDeposit , saveDeclinedDeposit});
       }
 
     } catch (error) {
